@@ -1,0 +1,23 @@
+{
+  "name": "reference-board",
+  "version": "1.0.3",
+  "productName": "图集",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "prepare:tauri": "node scripts/prepare-tauri.cjs",
+    "desktop": "npm run prepare:tauri && tauri dev",
+    "build:win": "npm run prepare:tauri && tauri build --bundles nsis"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.13",
+    "ag-psd": "^31.0.3",
+    "bmp-js": "^0.1.0",
+    "pdfjs-dist": "^4.10.38",
+    "sharp": "^0.35.5",
+    "tga-js": "^1.1.1"
+  }
+}

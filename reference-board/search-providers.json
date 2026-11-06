@@ -1,0 +1,14 @@
+[
+  { "id":"google", "name":"Google Images", "domain":"www.google.com", "home":"https://www.google.com/imghp?hl=zh-CN", "keyword":"https://www.google.com/search?tbm=isch&q={query}", "image":true, "input":"input[type=file][name=encoded_image]", "trigger":"[data-base-lens-url], [data-is-images-mode]", "hosts":["www.google.com","lens.google.com","lens.google"] },
+  { "id":"artstation", "name":"ArtStation", "domain":"www.artstation.com", "home":"https://www.artstation.com/search", "keyword":"https://www.artstation.com/search?sort_by=relevance&query={query}", "image":false },
+  { "id":"huaban", "name":"花瓣网", "domain":"huaban.com", "home":"https://huaban.com/", "keyword":"https://huaban.com/search/?q={query}", "image":false, "embedded":"page" },
+  { "id":"zcool", "name":"站酷 ZCOOL", "domain":"www.zcool.com.cn", "home":"https://www.zcool.com.cn/", "keyword":"https://www.zcool.com.cn/search/content?word={query}", "image":false },
+  { "id":"designspiration", "name":"Designspiration", "domain":"www.designspiration.com", "home":"https://www.designspiration.com/", "keyword":"https://www.designspiration.com/search/saves/?q={query}", "image":false, "embedded":"page" },
+  { "id":"behance", "name":"Behance", "domain":"www.behance.net", "home":"https://www.behance.net/", "keyword":"https://www.behance.net/search/projects?search={query}", "image":false },
+  { "id":"tineye", "name":"TinEye", "domain":"tineye.com", "home":"https://tineye.com/", "image":true, "input":"input#upload-box, input[type=file]", "hosts":["tineye.com","www.tineye.com"] },
+  { "id":"yandex", "name":"Yandex Images", "domain":"yandex.com", "home":"https://yandex.com/images/", "keyword":"https://yandex.com/images/search?text={query}", "image":true, "input":"input[type=file]", "hosts":["yandex.com","yandex.ru"] },
+  { "id":"saucenao", "name":"SauceNAO", "domain":"saucenao.com", "home":"https://saucenao.com/", "image":true, "input":"input#fileInput", "hosts":["saucenao.com","www.saucenao.com"], "embedded":"page" },
+  { "id":"lenso", "name":"Lenso.ai", "domain":"lenso.ai", "home":"https://lenso.ai/en", "image":true, "input":"input[type=file]", "hosts":["lenso.ai","www.lenso.ai"], "embedded":"page" },
+  { "id":"dazuo", "name":"大作网", "domain":"www.bigbigwork.com", "home":"https://www.bigbigwork.com/", "keyword":"https://www.bigbigwork.com/sr/images/?w={query}", "image":false },
+  { "id":"pinterest", "name":"Pinterest", "domain":"www.pinterest.com", "home":"https://www.pinterest.com/", "keyword":"https://www.pinterest.com/search/pins/?q={query}", "image":true, "embedded":"results" }
+]

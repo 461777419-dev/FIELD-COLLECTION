@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-search-window"
+description = "Open an isolated website window for image and keyword searches."
+commands.allow = ["open_search_window"]

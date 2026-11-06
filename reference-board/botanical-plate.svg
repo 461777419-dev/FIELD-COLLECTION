@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-labelledby="title">
+  <title id="title">野花与叶片植物学插画</title>
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e9f0e7"/><stop offset="1" stop-color="#f8f3e8"/></linearGradient>
+    <g id="leaf"><path d="M0 0 C-23 -19 -25 -51 0 -72 C20 -50 20 -18 0 0Z" fill="#b7c8a5" stroke="#536c59" stroke-width="1.2"/><path d="M0 -3 L0 -66 M0 -24 L-12 -35 M0 -41 L12 -52" fill="none" stroke="#6f8c73" stroke-width="1"/></g>
+    <g id="petal"><path d="M0 0 C-8 -12 -9 -32 0 -49 C10 -32 8 -12 0 0Z" fill="#e9bc9f" stroke="#a76e67" stroke-width="1"/></g>
+    <g id="small-leaf"><path d="M0 0 C-14 -11 -17 -29 0 -38 C13 -28 12 -10 0 0Z" fill="#c6d2ad" stroke="#60775e" stroke-width="1"/><path d="M0 0 L0 -33" stroke="#718965" stroke-width=".8"/></g>
+  </defs>
+  <circle cx="177" cy="163" r="137" fill="url(#wash)" opacity=".55"/>
+  <g fill="none" stroke="#5f725f" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M177 323 C174 275 173 243 169 210 C163 158 154 128 155 78" stroke-width="2.2"/>
+    <path d="M175 290 C142 250 111 231 74 221 M172 254 C209 226 237 208 269 187 M168 211 C137 187 113 164 92 133 M165 174 C193 151 217 130 229 104" stroke-width="1.6"/>
+    <path d="M177 321 C205 297 234 289 257 280 M174 309 C142 284 125 277 104 271" stroke-width="1.2"/>
+  </g>
+  <g opacity=".95">
+    <use href="#leaf" transform="translate(139 250) rotate(-53) scale(.75)"/>
+    <use href="#leaf" transform="translate(111 230) rotate(-69) scale(.63)"/>
+    <use href="#leaf" transform="translate(169 278) rotate(36) scale(.77)"/>
+    <use href="#leaf" transform="translate(213 229) rotate(44) scale(.72)"/>
+    <use href="#leaf" transform="translate(244 206) rotate(62) scale(.56)"/>
+    <use href="#leaf" transform="translate(130 178) rotate(-45) scale(.62)"/>
+    <use href="#leaf" transform="translate(106 151) rotate(-55) scale(.5)"/>
+    <use href="#small-leaf" transform="translate(194 148) rotate(45)"/>
+    <use href="#small-leaf" transform="translate(215 127) rotate(58) scale(.8)"/>
+    <use href="#small-leaf" transform="translate(226 296) rotate(70) scale(.8)"/>
+    <use href="#small-leaf" transform="translate(130 289) rotate(-52) scale(.8)"/>
+  </g>
+  <g transform="translate(155 72)">
+    <use href="#petal"/><use href="#petal" transform="rotate(45)"/><use href="#petal" transform="rotate(90)"/><use href="#petal" transform="rotate(135)"/><use href="#petal" transform="rotate(180)"/><use href="#petal" transform="rotate(225)"/><use href="#petal" transform="rotate(270)"/><use href="#petal" transform="rotate(315)"/>
+    <circle r="13" fill="#d2ad69" stroke="#8a7655" stroke-width="1.2"/><circle r="7" fill="#806a4d" opacity=".7"/><g fill="#f4d99e"><circle cx="-6" cy="-3" r="1.2"/><circle cx="2" cy="-7" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="-1" cy="6" r="1.2"/></g>
+  </g>
+  <g transform="translate(89 132) scale(.68)"><use href="#petal"/><use href="#petal" transform="rotate(60)"/><use href="#petal" transform="rotate(120)"/><use href="#petal" transform="rotate(180)"/><use href="#petal" transform="rotate(240)"/><use href="#petal" transform="rotate(300)"/><circle r="12" fill="#d4b776" stroke="#957b5a"/></g>
+  <g transform="translate(230 102) scale(.5)"><use href="#petal"/><use href="#petal" transform="rotate(60)"/><use href="#petal" transform="rotate(120)"/><use href="#petal" transform="rotate(180)"/><use href="#petal" transform="rotate(240)"/><use href="#petal" transform="rotate(300)"/><circle r="12" fill="#d4b776" stroke="#957b5a"/></g>
+  <g fill="none" stroke="#a89176" stroke-width=".9"><path d="M263 69h24m-12-12v24"/><circle cx="275" cy="69" r="17" stroke-dasharray="2 4"/><path d="M51 285h36m-36 4h24"/></g>
+  <g fill="#836e59" font-family="Georgia,serif" font-style="italic" font-size="12"><text x="270" y="94">fig. 01</text><text x="48" y="304">herbarium</text></g>
+</svg>

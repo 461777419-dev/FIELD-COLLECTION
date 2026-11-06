@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');const path=require('node:path');
+function setup(bridge){const elements=new Map();const calls=[];const ready={phase:'ready',configured:true,currentVersion:'1.0.3',desktop:true,latest:{version:'1.0.4'},preferences:{},progress:100};
+ const el=id=>{if(!elements.has(id))elements.set(id,{hidden:false,classList:{toggle(){}},setAttribute(){},addEventListener(){},focus(){}});return elements.get(id);};
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../update-ui.js'),'utf8'),{document:{getElementById:el,body:{insertAdjacentHTML(){}},addEventListener(){}},window:{__TAURI_INTERNALS__:bridge},api:async(url)=>{calls.push(url);return url.endsWith('/install')?{...ready,phase:'installing'}:ready;},toast(){},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){}});
+ return{el,calls};}
+test('没有桌面桥接时明确提示，不静默也不发起安装',async()=>{const {el,calls}=setup();await el('updateInstall').onclick();assert.match(el('updateStatus').textContent,/桌面更新接口/);assert.equal(calls.length,0);});
+test('助手就绪后才退出，字符串形式退出错误可见',async()=>{const bridge={async invoke(name){assert.equal(this,bridge);assert.equal(name,'quit_for_update');throw '退出命令被拒绝';}};const {el,calls}=setup(bridge);await el('updateInstall').onclick();assert.equal(calls.at(-1),'/api/updates/install');assert.match(el('updateStatus').textContent,/退出命令被拒绝/);assert.match(el('updateStatus').textContent,/60 秒/);assert.equal(el('updateCheck').disabled,false);});

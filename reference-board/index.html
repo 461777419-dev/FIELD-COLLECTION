@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>图集 · 参考图管理</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/improvements.css?v=2.11.0">
+  <link rel="stylesheet" href="/image-search.css?v=3.0.10">
+  <link rel="stylesheet" href="/whale.css?v=3.0.10">
+  <link rel="stylesheet" href="/wave.css?v=3.0.10">
+  <link rel="stylesheet" href="/album.css?v=3.0.10">
+  <script src="/lucide.min.js" defer></script>
+  <script src="/search-bar.js?v=3.0.10" defer></script>
+  <script src="/app.js?v=3.0.10" defer></script>
+  <script src="/improvements.js?v=3.0.10" defer></script>
+  <script src="/image-search.js?v=3.0.10" defer></script>
+  <script src="/update-ui.js?v=3.0.10" defer></script>
+  <script src="/whale.js?v=3.0.10" defer></script>
+  <script src="/album.js?v=3.0.10" defer></script>
+  <link rel="stylesheet" href="/workspace-switch.css?v=1">
+  <script src="/workspace-windows.js?v=2" defer></script>
+  <script src="/workspace-switch.js?v=2" defer></script>
+</head>
+<body class="album-ui">
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="brand-mark"><img src="/assets/app-icon.png" alt="图集"></div><div><strong>图集</strong><small>FIELD COLLECTION</small></div></div>
+      <button class="sidebar-import" id="importImages" type="button"><i data-lucide="plus"></i><span>导入图片</span></button>
+      <button class="sidebar-import folder-import" id="importFolder" type="button"><i data-lucide="folder-input"></i><span>导入文件夹</span></button>
+      <div class="side-group">
+        <div class="side-heading">图库</div>
+        <button class="side-item active" data-view="all"><i data-lucide="images"></i><span>所有图片</span><b id="allCount">0</b></button>
+        <button class="side-item" data-view="favorites"><i data-lucide="heart"></i><span>我的收藏</span><b id="favCount">0</b></button>
+        <button class="side-item" data-view="untagged"><i data-lucide="tag"></i><span>未加标签</span><b id="untaggedCount">0</b></button>
+        <button class="side-item" data-view="trash"><i data-lucide="trash-2"></i><span>回收站</span><b id="trashCount">0</b></button>
+      </div>
+      <div class="side-group folders-group">
+        <div class="side-heading" data-folder-root title="拖到此处恢复为一级文件夹"><span>文件夹</span><button class="icon-btn quiet" id="newFolder" title="新建文件夹" aria-label="新建文件夹"><i data-lucide="plus"></i></button></div>
+        <div id="folderList"></div>
+      </div>
+      <div class="side-group tags-group">
+        <div class="side-heading" data-tag-root title="将子标签拖到此处恢复为一级标签"><span>预设标签</span><button class="icon-btn quiet" id="newTag" title="新建标签" aria-label="新建标签"><i data-lucide="plus"></i></button></div>
+        <div id="tagList"></div>
+      </div>
+      <div class="map-prop" aria-hidden="true"><img src="/field-map.svg" alt=""></div>
+      <div class="sidebar-footer"><span class="status-dot"></span><span>本地图库</span><button class="icon-btn quiet" id="settingsBtn" title="设置" aria-label="设置"><i data-lucide="settings-2"></i></button><button class="icon-btn quiet" id="exportBtn" title="导出图库目录" aria-label="导出图库目录"><i data-lucide="download"></i></button></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn mobile-menu" id="menuBtn" title="菜单" aria-label="菜单"><i data-lucide="menu"></i></button>
+        <div class="breadcrumb"><span>我的图库</span><i data-lucide="chevron-right"></i><strong id="viewTitle">所有图片</strong></div>
+        <div class="top-actions">
+          <div id="searchBarMount"></div>
+          <button class="icon-btn toolbar-import" id="toolbarImport" title="导入图片" aria-label="导入图片"><i data-lucide="plus"></i></button>
+          <button class="icon-btn" id="toggleInspector" title="显示或隐藏详情" aria-label="显示或隐藏详情"><i data-lucide="panel-right"></i></button>
+        </div>
+      </header>
+      <div class="toolbar">
+        <div class="toolbar-title"><span class="toolbar-kicker">COLLECTION / 01</span><h1 id="heading">所有图片</h1><span id="viewCount">0 张图片</span></div>
+        <div class="toolbar-actions">
+          <button class="text-btn danger" id="emptyTrash" type="button" hidden>清空回收站</button>
+          <label class="select-wrap"><span>排序</span><select id="sortSelect"><option value="newest">最新添加</option><option value="manual">手动排序</option><option value="oldest">最早添加</option><option value="name">名称 A-Z</option><option value="size">文件大小</option><option value="tags">按标签分组</option></select><i data-lucide="chevron-down"></i></label>
+          <div class="size-control" title="调整缩略图大小"><i data-lucide="layout-grid"></i><input id="sizeSlider" type="range" min="160" max="320" value="220" aria-label="缩略图大小"><output id="galleryZoomValue">100%</output></div>
+        </div>
+      </div>
+      <section class="gallery-area" id="dropZone">
+        <div class="gallery" id="gallery"></div>
+        <div class="empty" id="emptyState" hidden><span class="paper-pin pin-left" aria-hidden="true"></span><span class="paper-pin pin-right" aria-hidden="true"></span><div class="empty-art"><span class="plate-annotation annotation-left">Flora study<br>Field specimen</span><img src="/assets/whale-album.png" alt="鲸鱼娘正在整理图集"><span class="plate-annotation annotation-right">fig. 01<br>Herbarium</span></div><span class="plate-headline">COLLECTION / 01&nbsp; | &nbsp;ALL IMAGES&nbsp; | &nbsp;<em>Field Journal</em></span><span class="empty-plate-label">PLATE 001 · FIELD NOTES</span><h2 id="emptyTitle">还没有参考图</h2><p id="emptyText">将图片或文件夹拖入窗口。</p></div>
+        <div class="drop-overlay" id="dropOverlay"><div><i data-lucide="upload-cloud"></i><strong>松开以导入图片</strong><span>支持常用图片、PSD、AI、CLIP 和相机 RAW</span></div></div>
+      </section>
+      <section class="pinterest-panel collapsed" id="pinterestPanel"><div class="panel-resizer horizontal" id="pinterestResizer" title="拖动调整 Pinterest 区域高度" role="separator" aria-label="调整 Pinterest 区域高度" aria-orientation="horizontal" tabindex="0"></div><div class="pinterest-header"><strong><i data-lucide="scan-search"></i>Pinterest 图搜图</strong><button id="pinterestChoose" title="选择图片搜索" aria-label="选择图片搜索"><i data-lucide="image-up"></i></button><button id="pinterestToggle" title="展开 Pinterest 图搜图" aria-label="展开 Pinterest 图搜图" aria-controls="pinterestContent" aria-expanded="false"><i data-lucide="chevron-down"></i></button></div><div class="pinterest-content" id="pinterestContent"><div class="pinterest-search-info" id="pinterestSearchInfo" role="status"></div><div class="pinterest-fallback" id="pinterestFallback" role="status">拖入图片或点击上方图标搜索相关图片</div><div class="pinterest-results" id="pinterestResults"></div><button class="pinterest-more" id="pinterestMore" hidden>加载更多</button></div><input id="pinterestFile" type="file" accept="image/*" hidden></section>
+      <footer class="bottom-bar"><span id="footerCount">0 张图片</span><span id="uploadStatus"></span><span id="formatStatus">本地图库</span></footer>
+    </main>
+
+    <aside class="inspector" id="inspector"><div id="inspectorContent" class="inspector-empty"><div class="inspector-empty-icon"><i data-lucide="mouse-pointer-2"></i></div><strong>选择一张图片</strong><span>查看详情并整理标签与备注</span></div></aside>
+    <div class="panel-resizer sidebar-resizer" id="sidebarResizer" title="拖动调整侧栏宽度" role="separator" aria-label="调整侧栏宽度" aria-orientation="vertical" tabindex="0"></div>
+    <div class="panel-resizer inspector-resizer" id="inspectorResizer" title="拖动调整详情宽度" role="separator" aria-label="调整详情宽度" aria-orientation="vertical" tabindex="0"></div>
+  </div>
+
+  <div class="modal-backdrop" id="folderModal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="folderDialogTitle"><div class="dialog-header"><h2 id="folderDialogTitle">新建文件夹</h2><button class="icon-btn quiet" data-close="folderModal" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div><label class="field-label" for="folderName">名称</label><input id="folderName" class="dialog-input" maxlength="80" placeholder="例如：建筑灵感"><label class="field-label" for="folderParent">上级文件夹</label><select id="folderParent" class="detail-select"></select><div class="folder-color-controls"><label><input type="checkbox" id="folderColorEnabled">启用标记颜色</label><input type="color" id="folderColor" value="#95b6dc" aria-label="文件夹标记颜色"></div><p class="settings-hint">填充卡片背景与留白，透明度 50%；不覆盖图片，标签边框保留。取消勾选可清除标记。</p><div class="dialog-actions"><button class="text-btn" data-close="folderModal">取消</button><button class="action-btn" id="saveFolder">保存</button></div></div></div>
+  <div class="modal-backdrop" id="tagModal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tagDialogTitle"><div class="dialog-header"><h2 id="tagDialogTitle">新建标签</h2><button class="icon-btn quiet" data-close="tagModal" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div><label class="field-label" for="tagName">名称</label><input id="tagName" class="dialog-input" maxlength="40" placeholder="例如：建筑"><label class="field-label" for="tagColor">标记颜色</label><input id="tagColor" type="color" value="#506a51"><div class="dialog-actions"><button class="text-btn" data-close="tagModal">取消</button><button class="action-btn" id="saveTag">保存</button></div></div></div>
+  <div class="modal-backdrop" id="settingsModal" hidden><div class="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><div class="dialog-header"><h2 id="settingsTitle">设置</h2><button class="icon-btn quiet" data-close="settingsModal" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div><h3 class="settings-section-title">AI 图片分析</h3><label class="field-label" for="aiProvider">服务接口</label><select id="aiProvider" class="dialog-input"><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic Claude</option><option value="deepseek">DeepSeek</option></select><label class="field-label" for="aiModel">模型名称</label><input id="aiModel" class="dialog-input" maxlength="100" spellcheck="false"><label class="field-label" for="aiKey">API Key</label><div class="ai-settings-row"><input id="aiKey" class="dialog-input" type="password" autocomplete="off" placeholder="留空可沿用已保存密钥"><button class="action-btn" id="saveAiKey">保存</button><button class="text-btn" id="clearAiKey">清除</button></div><p class="settings-hint" id="aiKeyStatus"></p><p class="settings-hint">分析时会向所选服务发送当前图片预览。密钥是否能持久保存以设置状态提示为准。</p><h3 class="settings-section-title">Pinterest 相似推荐</h3><label class="field-label" for="pinterestCookie">Pinterest Cookie</label><div class="ai-settings-row"><input id="pinterestCookie" class="dialog-input" type="password" autocomplete="off" placeholder="粘贴浏览器导出的 Cookie 请求头"><button class="action-btn" id="savePinterestCookie">应用</button><button class="text-btn" id="clearPinterestCookie">清除</button></div><p class="settings-hint" id="pinterestCookieStatus">仅当前运行有效，不写入图库文件。</p><h3 class="settings-section-title">界面颜色</h3><div class="theme-colors"><label>纸面<input type="color" id="themePaper" value="#f3e5c8"></label><label>画布<input type="color" id="themeCanvas" value="#e7ebe4"></label><label>标题栏<input type="color" id="themeToolbar" value="#2d4030"></label><label>强调色<input type="color" id="themeAccent" value="#9a4b35"></label></div><button class="text-btn" id="resetTheme">还原默认颜色</button><h3 class="settings-section-title">图标库</h3><div id="iconSettings"></div><div class="dialog-actions"><button class="text-btn" id="restoreIcons">还原默认图标</button><button class="action-btn" data-close="settingsModal">完成</button></div></div></div>
+  <div class="context-menu" id="contextMenu" hidden></div>
+  <div class="modal-backdrop" id="duplicateModal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="duplicateTitle"><div class="dialog-header"><h2 id="duplicateTitle">发现重复图片</h2></div><p id="duplicateDescription" class="settings-hint"></p><div class="duplicate-compare"><img id="duplicateExisting" alt="图库中已有图片"><div><strong id="duplicateName"></strong><span id="duplicateKind"></span></div></div><div class="dialog-actions duplicate-actions"><button class="text-btn" data-duplicate="skip">跳过</button><button class="text-btn" data-duplicate="keep">保留两份</button><button class="action-btn" data-duplicate="merge">保留并沿用标签</button></div></div></div>
+  <div class="modal-backdrop viewer-backdrop" id="viewer" hidden><div class="viewer" role="dialog" aria-modal="true" aria-label="图片预览"><div class="viewer-bar"><span id="viewerName"></span><div><button class="icon-btn viewer-button" id="viewerDownload" title="下载原图" aria-label="下载原图"><i data-lucide="download"></i></button><button class="icon-btn viewer-button" id="viewerClose" title="关闭预览" aria-label="关闭预览"><i data-lucide="x"></i></button></div></div><button class="viewer-arrow left" id="viewerPrev" title="上一张" aria-label="上一张"><i data-lucide="chevron-left"></i></button><img id="viewerImage" alt=""><video id="viewerVideo" controls playsinline preload="metadata" hidden></video><p id="videoPlaybackHint" hidden>当前编码无法内嵌播放。<button type="button" id="videoOpenExternal">使用系统播放器打开 / 下载</button></p><button class="viewer-arrow right" id="viewerNext" title="下一张" aria-label="下一张"><i data-lucide="chevron-right"></i></button><div class="viewer-count" id="viewerCount"></div></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <input id="iconFileInput" type="file" accept=".png,.svg,image/png,image/svg+xml" hidden>
+  <input id="importFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.tif,.tiff,.tga,.bmp,.psd,.psb,.clip,.ai,.eps,.cr2,.cr3,.nef,.arw,.dng,.raf,.orf,.rw2,.mp4,.webm,.mov,.m4v,.ogv,.mkv,.avi" multiple hidden>
+  <input id="importFolderInput" type="file" webkitdirectory directory multiple hidden>
+  <input id="restoreBackupInput" type="file" accept=".gz,.tgz,application/gzip" hidden>
+</body>
+</html>

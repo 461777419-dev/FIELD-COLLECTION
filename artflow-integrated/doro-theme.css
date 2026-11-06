@@ -1,0 +1,50 @@
+html.doro-board, .doro-board body, .doro-board #root {color-scheme:light;background:#fff8fb;color:#755e71;font-family:'Microsoft YaHei UI','Segoe UI',sans-serif;}
+.doro-board #root {--ui-text:#705b6d!important;--ui-bg-color:#ffffffed!important;--ui-hover:#fae8f1!important;--bp-canvas-bg:#fff8fb!important;--bp-canvas-bg-image:none!important;--bp-accent:#ca789e!important;--bp-accent-soft:#f6dfeb!important;--bp-ui-text:#705b6d!important;--bp-ui-text-muted:#9d859a!important;--bp-ui-border:#ecdce7!important;--bp-ui-surface:#ffffffed!important;--bp-ui-surface-strong:#fff!important;--bp-ui-hover:#faedf4!important;--bp-ui-radius:14px!important;--bp-ui-focus:#bf7fa7!important;--bp-ui-prompt-action:#c87ca1!important;--bp-font-ui:'Microsoft YaHei UI','Segoe UI',sans-serif!important;}
+.doro-board #root > div[data-bp-board-background="theme"] {background:#fff8fb!important;background-image:radial-gradient(#dfcbd840 .8px,transparent .8px)!important;background-size:22px 22px!important;}
+.doro-board [data-bp-ui-surface], .doro-board [role="dialog"], .doro-board [role="menu"] {background:#fffdfef5!important;color:#705b6d!important;border-color:#ead9e5!important;box-shadow:0 6px 24px #925d7a0e!important;backdrop-filter:blur(14px);}
+.doro-board [data-bp-ui-surface] button, .doro-board [role="dialog"] button {color:#765b70;}
+.doro-board [role="dialog"] input, .doro-board [role="dialog"] select, .doro-board [role="dialog"] textarea {background:#fff8fc!important;color:#6b5267!important;border-color:#e8d5e1!important;}
+.doro-board [role="dialog"] [class*="text-gray"],.doro-board [role="dialog"] [class*="text-neutral"] {color:#8e7388!important;}
+.doro-board [data-bp-ui-workspace-dock] {left:84px!important;bottom:116px!important;max-width:220px!important;}
+.doro-board [data-bp-ui-prompt] {bottom:36px!important;width:min(680px,calc(100% - 150px))!important;max-width:none!important;}
+.doro-board [data-bp-ui-prompt] > div {flex-wrap:wrap;justify-content:center;gap:8px;}
+.doro-board [data-bp-ui-prompt] textarea {color:#6b5267!important;background:transparent!important;}
+.doro-board [data-bp-ui-prompt] [class*="bg-[#e9e9e9]"] {background:white!important;border:1px solid #ead4e0;}
+.doro-board [aria-label="打开工作区详情"] {font-size:12px;}
+.doro-board [aria-label="画布导航器"] {bottom:116px!important;}
+.doro-board [title="性能监测（拖动移动位置 / 点击展开）"] {display:none!important;}
+.doro-actions {position:absolute;top:76px;right:18px;left:90px;z-index:45;display:flex;align-items:center;justify-content:flex-end;gap:8px;pointer-events:none;}
+.doro-actions button,.doro-empty button {pointer-events:auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #e4cddd;border-radius:10px;background:white;color:#9d5e85;padding:9px 13px;font-size:12px;transition:background .15s;}
+.doro-actions button:first-of-type {background:#985374;color:white;border-color:#854463;font-weight:700;}
+.doro-actions button:hover,.doro-empty button:hover {background:#f9e5f0;color:#825574;}
+.doro-actions button:first-of-type:hover:not(:disabled) {background:#804360;color:white;}
+.doro-actions button:disabled, .doro-board [data-bp-ui-surface] button:disabled, .doro-board [role="dialog"] button:disabled {opacity:1;color:#715b6a;background:#eee4eb;border-color:#d9c9d3;cursor:not-allowed;}
+.doro-board button:focus-visible {outline:3px solid #bc83a4;outline-offset:2px;}
+.doro-save-state {margin-right:auto;color:#a1889b;font-size:11px;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.doro-empty {position:absolute;z-index:5;top:43%;left:50%;transform:translate(-50%,-50%);text-align:center;max-width:480px;width:calc(100% - 170px);color:#8a6b80;pointer-events:none;}
+.doro-empty > img {height:150px;width:150px;object-fit:cover;border-radius:40px;box-shadow:0 12px 40px #c87ca11a;display:block;margin:0 auto 18px;}
+.doro-eyebrow {font-size:10px;letter-spacing:3px;color:#bd96b2;}
+.doro-empty h1 {font-size:26px;font-weight:600;letter-spacing:3px;margin:12px 0;}
+.doro-empty p {font-size:12px;line-height:2;color:#a58a9e;margin-bottom:20px;}
+.doro-empty > div {display:flex;justify-content:center;gap:10px;}
+.doro-empty button:first-child {background:#f7e5ef;}
+.doro-help {position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.3px;color:#8a6b80;z-index:30;white-space:nowrap;pointer-events:none;}
+.doro-model-link {position:absolute;bottom:116px;left:50%;transform:translateX(-50%);z-index:45;font-size:10px;color:#aa839e;border:0;background:#fff8fbe8;border-radius:20px;padding:6px 12px;}
+.doro-loading {position:absolute;inset:0;z-index:100;background:#fff8fbf5;display:grid;place-items:center;color:#9d5e85;}
+@media(max-width:850px) {.doro-save-state{display:none;}.doro-actions{left:82px;right:10px;justify-content:center;}.doro-board [data-bp-ui-workspace-dock]{display:none;}.doro-empty h1{font-size:20px;}.doro-empty > img{width:112px;height:112px;}.doro-empty p{font-size:11px;}.doro-empty>div{flex-wrap:wrap;}.doro-board [aria-label="画布导航器"]{display:none;}.doro-actions button{padding:8px;font-size:11px;}.doro-help{font-size:9px;}}
+@media(prefers-reduced-motion:reduce) {.doro-board *{animation:none!important;transition:none!important;}}
+
+.doro-board [data-bp-ui-floating-shell].flex-col {top:78px!important;transform:none!important;max-height:calc(100% - 110px);overflow-y:auto;scrollbar-width:thin;}
+.doro-board [data-bp-topbar-side="left"] {left:86px!important;}
+.doro-corner {position:absolute;bottom:39px;right:18px;width:58px;height:49px;object-fit:cover;border-radius:15px;opacity:.6;pointer-events:none;z-index:1;}
+.doro-board input[type="range"] {accent-color:#c181a8;}
+.doro-board [data-bp-ui-workspace-dock] {max-width:300px!important;}
+.doro-board [data-bp-layer-panel] {top:78px!important;bottom:116px!important;height:auto!important;max-height:calc(100% - 194px)!important;}
+.doro-board [data-bp-board-panel] {left:86px!important;top:78px!important;bottom:116px!important;height:auto!important;max-height:calc(100% - 194px)!important;}
+.doro-board [data-bp-plugin-entry] {display:inline-flex;align-items:center;}
+.atlas-settings-note {font-size:12px;line-height:1.7;padding:8px 10px;margin-bottom:12px;background:#faedf4;border-radius:9px;color:#815b75;}
+.doro-board [data-bp-ui-settings-nav] button {color:#795e73;}
+.doro-board [data-bp-ui-settings-nav] button[data-bp-ui-active="true"] {background:#f4dfeb;color:#8b4f72;}
+
+/* Keep the lower-right canvas free of miniature previews. */
+html.doro-board [data-bp-ui-navigator] {display:none !important;}

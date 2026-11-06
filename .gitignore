@@ -1,0 +1,38 @@
+# Dependencies and generated bundles
+**/node_modules/
+**/.tauri-npm-cache/
+**/board-dist/
+**/dist/
+**/dist-ssr/
+**/src-tauri/target*/
+**/src-tauri/gen/
+**/src-tauri/frontend/
+**/src-tauri/resources/runtime/
+**/release*/
+
+# User libraries, local settings, credentials and diagnostics
+**/data/
+**/data-backup*/
+**/work-desktop-smoke*/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.local
+**/*.pem
+**/*.key
+**/*.lnk
+**/*.log
+**/*.result.txt
+**/.oil-ui/
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/scratch/
+**/converted/
+
+# Built installers / native binaries (source icons and test media are retained)
+**/*.exe
+**/*.dll
+**/*.pdb
+**/*.zip
+**/*.7z

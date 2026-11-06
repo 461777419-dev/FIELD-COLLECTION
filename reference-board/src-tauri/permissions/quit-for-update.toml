@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-quit-for-update"
+description = "Close the main application after preparing a verified update."
+commands.allow = ["quit_for_update"]

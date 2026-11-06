@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 290" role="img" aria-labelledby="title">
+  <title id="title">探险者地图角饰</title>
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".025" numOctaves="3" seed="8" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="3"/></filter>
+    <pattern id="grain" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M2 3h1M13 17h2M19 6h1" stroke="#9c774f" stroke-opacity=".23"/></pattern>
+  </defs>
+  <path d="M10 12 320 6 332 276 12 284Z" fill="#a8794f" opacity=".34"/>
+  <path d="M9 8 317 5 328 268 12 278 5 142Z" fill="#ddc398" stroke="#775437" stroke-width="2" filter="url(#rough)"/>
+  <path d="M14 15 308 11 318 260 18 269Z" fill="url(#grain)"/>
+  <path d="M24 22 299 18 307 249 28 256Z" fill="none" stroke="#71563b" stroke-width="2"/>
+  <g fill="none" stroke="#71563b" stroke-width="1.1" opacity=".85">
+    <path d="M30 74 300 67M29 121 301 113M27 175 303 165M27 218 305 212M76 21 77 253M124 20 125 251M181 18 181 251M237 18 239 251M279 17 283 250"/>
+    <path d="M36 34 56 48 67 42M88 82 112 75 119 99M148 194 166 183 179 199M194 52 219 42 229 54M252 131 274 137 285 128"/>
+    <path d="M41 153q17-18 33 1t32-2M131 38q12 20 32 13t23-18M199 218q23-12 42 4t37-2" stroke-dasharray="4 4"/>
+  </g>
+  <g transform="translate(170 116)" stroke="#6c4c31" fill="none"><path d="M-35 25h70M-29 24v-42l29-17 29 17v42M-22 25v-31h44v31M-24-11 0-25 24-11M-8 25V5H8v20M-16-2h5M11-2h5" stroke-width="2"/><path d="M-41 27h82M-27-22h54"/></g>
+  <text x="119" y="158" font-family="Georgia,serif" font-size="14" font-weight="bold" letter-spacing="1.5" fill="#67472e">LOCAL LIBRARY</text>
+  <g transform="translate(70 220)" fill="none" stroke="#604631" stroke-width="1.2"><circle r="27"/><circle r="19"/><path d="M0-37v74M-37 0h74M-17-17 17 17M17-17-17 17"/><path d="M0-28 5-5 28 0 5 5 0 28-5 5-28 0-5-5Z" fill="#9a7851"/><circle r="3" fill="#5e402b"/></g>
+  <text x="64" y="181" font-family="Georgia,serif" font-size="12" fill="#6e5038">N</text>
+  <g transform="translate(285 232)"><circle r="29" fill="#6c231b" stroke="#4e170f" stroke-width="3"/><circle r="23" fill="none" stroke="#aa5e42" stroke-width="2"/><circle r="17" fill="none" stroke="#8e4933"/><path d="M-8 4 0-10 8 4M-4 2h8M0 11V-2" fill="none" stroke="#b87756" stroke-width="2"/></g>
+</svg>

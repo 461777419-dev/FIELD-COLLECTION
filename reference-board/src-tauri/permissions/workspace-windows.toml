@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-workspace-windows"
+description = "Open local tool windows and close them after the acknowledged handoff."
+commands.allow = ["open_workspace_window", "close_workspace_window"]

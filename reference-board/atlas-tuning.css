@@ -1,0 +1,15 @@
+.main {
+  background-image:
+    repeating-linear-gradient(1deg, transparent 0 11px, #170e0a26 12px 13px, transparent 14px 30px),
+    linear-gradient(90deg, #25130d, #51301f 21%, #3a2016 54%, #59331f 82%, #291610);
+}
+
+@media (max-height: 800px) and (min-width: 701px) {
+  .empty { min-height: 490px; padding: 20px 20px 26px; }
+  .empty-art { height: 240px; min-height: 0; }
+  .plate-headline { font-size: 16px; margin-bottom: 4px; }
+  .plate-headline em { font-size: 14px; }
+  .empty-plate-label { margin-bottom: 7px; }
+  .empty h2 { font-size: 24px; }
+  .empty p { margin-bottom: 14px; }
+}

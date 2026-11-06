@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-drag-images-out"
+description = "Allows the gallery to drag selected images into other applications."
+commands.allow = ["drag_images_out"]

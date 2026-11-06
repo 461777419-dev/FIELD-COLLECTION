@@ -1,0 +1,18 @@
+{
+  "identifier": "main-window",
+  "windows": [
+    "main", "workspace-*"
+  ],
+  "remote": {
+    "urls": [
+      "http://127.0.0.1:*"
+    ]
+  },
+  "permissions": [
+    "core:default",
+    "allow-drag-images-out",
+    "allow-open-search-window",
+    "allow-quit-for-update",
+    "allow-workspace-windows"
+  ]
+}

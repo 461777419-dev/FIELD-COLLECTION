@@ -1,0 +1,27 @@
+/* Sea-trough contour; the illustration owns a reserved column, never the input hit area. */
+.toolbar{padding-top:24px;padding-bottom:20px;align-items:center}
+.search-box{height:68px;padding:0 16px 10px;gap:12px;border:0;border-radius:24px;background:transparent;isolation:isolate;box-shadow:none;position:relative}
+.search-box:focus-within{border:0;background:transparent;box-shadow:none}
+.search-box>.water-outline{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;overflow:visible;filter:drop-shadow(0 3px 4px #4d6bfe08);color:unset}
+.water-fill{fill:#edf5ff;stroke:#a8c6f3;stroke-width:1.2;transition:fill 180ms,stroke 180ms,stroke-width 180ms}
+.water-line{fill:none;stroke:#c4daf8;stroke-width:1;pointer-events:none;transition:stroke 180ms}
+.search-box:focus-within .water-fill{fill:#f2f8ff;stroke:#4d6bfe;stroke-width:1.8}
+.search-box:focus-within .water-line{stroke:#9dbdf3}
+.search-box>svg:not(.water-outline){width:19px;height:19px}
+.search-box input{position:relative;z-index:1;font-size:15px}
+.search-box kbd{background:#ffffffb3;border-color:#cbdcf3}
+.whale-companion{flex-basis:96px;height:58px;margin-top:-8px}
+.whale{width:96px;height:78px;top:-12px;border-radius:38px 38px 20px 20px}
+.whale:hover,.whale:focus-visible{background:#dceaff55}
+.whale-swim{left:3px;top:-7px;width:90px;height:90px}
+.whale-body{width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 3px 2px #3854a215)}
+.whale-water{left:14px;right:12px;bottom:0;height:5px;background:#7bafff30}
+.whale-bubbles i{right:8px;bottom:13px}.whale-bubbles i:nth-child(2){right:17px}.whale-bubbles i:nth-child(3){right:1px}
+.whale-reply{bottom:calc(100% + 29px);right:6px;max-width:240px;background:#f2f7ff}
+.whale-reply::after{background:#f2f7ff}
+.suggestions{top:calc(100% + 8px);border-color:#d3e2f6}
+.clear{position:relative;z-index:1;background:transparent}
+@media(max-width:850px){.toolbar{gap:16px}.whale-companion{flex-basis:86px}.whale{width:86px}.whale-swim{left:0;width:84px}.whale-body{width:84px;height:84px}}
+@media(max-width:600px){.toolbar{padding:16px 14px 13px;row-gap:35px}.search-box{height:66px;gap:7px;padding:0 11px 10px}.search-box input{font-size:14px}.whale-companion{flex-basis:84px;height:58px}.whale{width:84px;height:76px}.whale-swim{top:-6px;width:84px;height:84px}.whale-body{width:84px;height:84px}.whale-reply{right:8px;bottom:calc(100% + 27px);max-width:220px}.search-box kbd{font-size:10px;padding:4px}.search-box>.water-outline{width:100%;height:100%}}
+@media(max-width:370px){.search-box{gap:5px}.search-box input{font-size:13px}.search-box input::placeholder{font-size:12px}.whale-companion{flex-basis:68px}.whale{width:68px;height:70px}.whale-swim{width:70px;height:74px;left:-1px;top:-1px}.whale-body{width:70px;height:74px}.search-box kbd{display:none}}
+@media(prefers-reduced-motion:reduce){.water-fill,.water-line{transition:none}}
