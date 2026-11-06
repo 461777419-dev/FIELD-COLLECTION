@@ -21,6 +21,7 @@ import { SectionBlock, SettingsRow } from '../../plugin-runtime/settings-ui';
 import type { SettingsSectionProps } from '../../plugin-runtime/settings-contributions';
 import type { ImageElement } from '../../types';
 import { composeExportPng } from '../../capabilities/canvas-export/compose';
+import { copyCanvasElements } from '../../utils/canvasClipboard';
 import { imageFileExtension } from '../../utils/nativeDragOut';
 import { uiText } from '../../utils/language-store';
 import { bi } from '../../plugin-runtime/i18n';
@@ -332,9 +333,9 @@ export const toolsCanvasPlugin = definePlugin({
       ...exportersCommands.map(({ id, value }) => ctx.contributions.register<CommandDefinition>('commands', { id, pluginId: manifest.id, priority: 20, value })),
       ...(() => {
         const buildMenuItems = (): readonly ContextMenuItem[] => [
-          { label: language => (language === 'zho' ? '复制图片为文件（原画质）' : 'Copy image as file (original quality)'), group: 'clipboard', visible: menuCtx => menuCtx.element?.type === 'image', run: menuCtx => { void copyImageOriginalAsFile(ctx, menuCtx.element as ImageElement); } },
-          { label: language => (language === 'zho' ? '复制选区为图片文件' : 'Copy selection as image file'), group: 'clipboard', visible: menuCtx => menuCtx.isMultiSelection && menuCtx.selectedElements.length > 0, run: () => { void copyComposedAsFile(ctx, true, 'selection'); } },
-          { label: language => (language === 'zho' ? '复制画布为图片文件' : 'Copy canvas as image file'), group: 'clipboard', visible: menuCtx => menuCtx.element === null && !menuCtx.isMultiSelection, run: () => { void copyComposedAsFile(ctx, false, 'canvas'); } },
+          { label: language => (language === 'zho' ? '复制图片到剪贴板' : 'Copy image to clipboard'), group: 'clipboard', visible: menuCtx => menuCtx.element?.type === 'image', run: menuCtx => { void copyCanvasElements([menuCtx.element as ImageElement]).catch(error => window.alert('复制失败：'+String(error))); } },
+          { label: language => (language === 'zho' ? '复制选区为图片' : 'Copy selection as image'), group: 'clipboard', visible: menuCtx => menuCtx.isMultiSelection && menuCtx.selectedElements.length > 0, run: () => { void copyToClipboard(ctx, true); } },
+          { label: language => (language === 'zho' ? '复制画布为图片' : 'Copy canvas as image'), group: 'clipboard', visible: menuCtx => menuCtx.element === null && !menuCtx.isMultiSelection, run: () => { void copyToClipboard(ctx, false); } },
         ];
         return buildMenuItems().map((item, index) => ctx.contributions.register<ContextMenuItem>('ui_menus', { id: `builtin.exporters.file-${index}`, pluginId: manifest.id, priority: 55 - index, value: item }));
       })(),

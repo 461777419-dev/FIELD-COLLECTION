@@ -1,15 +1,16 @@
 #workspaceSwitcher {position:fixed;left:16px;top:10px;width:190px;z-index:80;color:#55749e;font-family:'Microsoft YaHei UI','Segoe UI',sans-serif;}
 .album-ui .brand {visibility:hidden;min-height:105px;margin-bottom:8px;}
-.workspace-brand {display:flex;width:100%;gap:10px;align-items:center;padding:5px;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer;border-radius:10px;}
+.workspace-brand {display:flex;width:100%;min-height:54px;gap:10px;align-items:center;padding:6px;border:1px solid transparent;background:transparent;text-align:left;color:inherit;cursor:pointer;border-radius:12px;transition:background .16s,border-color .16s;}
 .workspace-brand:hover {background:#afc5e51c;}
-.workspace-brand > img {width:32px;height:32px;border-radius:10px;object-fit:cover;}
-.workspace-brand strong {display:block;font-size:18px;letter-spacing:1px;font-weight:700;}
+.workspace-brand > img {width:34px;height:34px;border-radius:10px;object-fit:cover;}
+.workspace-brand strong {display:block;font-size:18px;letter-spacing:.5px;font-weight:600;}
 .workspace-brand small {display:block;font-size:8px;letter-spacing:1px;margin-top:3px;color:#8198b9;}
-.workspace-chevron {margin-left:auto;font-size:20px;transition:transform .15s;}
+.workspace-chevron {display:grid;place-items:center;flex-shrink:0;width:28px;height:32px;margin-left:auto;color:currentColor;opacity:.8;transition:transform .16s;}
+.workspace-chevron svg {width:16px;height:16px;}
 .workspace-brand[aria-expanded=true] .workspace-chevron {transform:rotate(180deg);}
-#workspaceMenu {position:absolute;top:48px;left:0;right:0;padding:5px;border:1px solid #d4e0f3;background:white;border-radius:12px;box-shadow:0 8px 24px #5276a720;z-index:2;}
+#workspaceMenu {position:absolute;top:58px;left:0;right:0;padding:6px;border:1px solid #e0e7f0;background:#fffffff7;border-radius:14px;box-shadow:0 8px 28px #5276a714;z-index:2;}
 #workspaceMenu[hidden] {display:none;}
-#workspaceMenu button {display:flex;align-items:center;gap:10px;width:100%;padding:9px;border:0;border-radius:8px;background:transparent;color:#58769f;text-align:left;cursor:pointer;}
+#workspaceMenu button {display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:10px;border:0;border-radius:8px;background:transparent;color:#58769f;font-size:14px;text-align:left;cursor:pointer;}
 #workspaceMenu button img {width:25px;height:25px;object-fit:cover;border-radius:6px;}
 #workspaceMenu button[aria-current=true],#workspaceMenu button:hover {background:#edf3fc;}
 #workspaceSwitcher button:focus-visible {outline:2px solid #829fc5;outline-offset:1px;}
@@ -22,14 +23,15 @@
 .board-shell-header > small {font-size:12px;color:#91758a;}
 .board-active .app {visibility:hidden;pointer-events:none;}
 .board-active #workspaceSwitcher {color:#a7698e;}
+.board-active .workspace-brand:hover,.board-active .workspace-brand[aria-expanded=true] {background:#f8edf3;border-color:#efdee7;}
 .board-active .workspace-ai {color:#9d5e85;border-color:#e4cddd;}
 .board-active #workspaceMenu {border-color:#ead6e3;}
 .board-active #workspaceMenu button {color:#9d5e85;}
 .board-active #workspaceMenu button[aria-current=true],.board-active #workspaceMenu button:hover {background:#faedf4;}
 #boardActionsHost {position:absolute;right:18px;top:40px;}
 #boardActionsHost .doro-actions {display:flex;gap:8px;align-items:center;}
-#boardActionsHost button {display:inline-flex;align-items:center;gap:7px;border:1px solid #e4cddd;border-radius:10px;background:white;color:#9d5e85;padding:9px 13px;font-size:12px;cursor:pointer;transition:background .15s;}
-#boardActionsHost button.atlas-save {background:#985374;color:white;border-color:#854463;font-weight:700;}
+#boardActionsHost button {display:inline-flex;align-items:center;gap:7px;border:1px solid #ebdfe7;border-radius:9px;background:#fffdfd;color:#85677b;padding:9px 13px;font-size:12px;cursor:pointer;transition:background .15s,border-color .15s;}
+#boardActionsHost button.atlas-save {background:#a26888;color:white;border-color:#a26888;font-weight:600;}
 #boardActionsHost button:hover {background:#f9e5f0;color:#825574;}
 #boardActionsHost button:disabled {opacity:1;color:#715b6a;background:#eee4eb;border-color:#d9c9d3;cursor:not-allowed;}
 #boardActionsHost button.atlas-save:hover:not(:disabled) {background:#804360;color:white;}

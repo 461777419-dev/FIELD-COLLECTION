@@ -378,20 +378,10 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
         };
     }, [canvasSize.width, canvasSize.height]);
 
-    // 性能核心：相机 transform 挂在内层 <g>（ADR-051 恢复；"挂 <svg> 根"方案已被真机证伪）。
-    //
-    // ADR-049 曾把 transform 移到 <svg> 元素自身（will-change:transform 提升合成层，
-    // 期望 pan/zoom 只更新变换矩阵、不重栅格化）。真机实测被证伪：
-    // <svg> 层的 bounds 覆盖 overflow:visible 下的全部世界内容（巨型单层），
-    // 缩放时栅格比例失配 —— 手势中显示旧比例瓦片（发软/闪）、新暴露区域尚未
-    // 栅格化（图片消失）、比例变化触发整层重栅格 + 合成器饱和（输入停滞感）。
-    // 真机症状："滚动缩放很闪、图片消失、滚动和拖动突然失效"。
-    // 命中测试不受影响（scratch/probe-svg-root-hit-test.html 已排除），
-    // 问题出在合成器侧，且回退后消失 —— 详细记录见 docs/adr/ADR-051。
-    //
-    // <g> 方案的每帧重栅格成本由 512px 中档纹理（ADR-049 后半，保留）压到 1/4，
-    // 这才是对"图片一多才卡"的正确解；合成层路线不再使用。
-    const canvasTransform = `translate3d(${viewportPan.x}px, ${viewportPan.y}px, 0) scale(${viewportZoom})`;
+    // Keep the camera on the inner SVG group and measure the untransformed container.
+    // Native SVG transforms repaint image detail at the current zoom. Promoting
+    // the whole content group to a CSS layer can magnify a cached low-res bitmap.
+    const canvasTransform = `translate(${viewportPan.x} ${viewportPan.y}) scale(${viewportZoom})`;
 
     const viewportGroupRef = useRef<SVGGElement | null>(null);
     const canvasSizeRef = useRef(canvasSize);
@@ -415,17 +405,7 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
         );
     };
 
-    // 有 store 时：transform 由 live 值直接写内层 <g>，每帧只做一次字符串赋值，不触发 React。
-    //
-    // ⚠️ 已实测否决"量化步进写入"（方案②，2026-09-24）：曾试过 zoom 相对上次写入
-    // 偏移 <6% 时冻结 transform、跨步才写真实值，A/B 交错各两轮（150 图全屏 12s
-    // 缩放手势，scratch/probe-paint-trace.mjs）结果 B 比 A 差 2.5 倍：
-    //   A（每帧精确写）RasterTask ≈6300 / GPUTask ≈2.3s
-    //   B（6% 步进跳写）RasterTask ≈17000 / GPUTask ≈6.0s
-    // 机制：Chromium cc 对**连续微小 scale 变化会保持旧瓦片拉伸显示**（延迟重光栅，
-    // 正是"低清瓦片过渡"想要的；每帧写入天然享受）；而 6% 跳变每次都越过重光栅
-    // 判据，把"延迟重光栅"变成"每步必重光栅"。结论：imperative 每帧写入是当前
-    // 架构下对 cc 拉伸启发式最友好的写法，勿再改步进。
+    // Live camera updates stay outside React, using SVG coordinates rather than CSS pixels.
     useLayoutEffect(() => {
         if (!viewportStore) return;
         let frame: number | null = null;
@@ -434,7 +414,7 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
             const group = viewportGroupRef.current;
             if (!group) return;
             const live = viewportStore.getLive();
-            group.style.transform = `translate3d(${live.panOffset.x}px, ${live.panOffset.y}px, 0) scale(${live.zoom})`;
+            group.setAttribute('transform', `translate(${live.panOffset.x} ${live.panOffset.y}) scale(${live.zoom})`);
             runLiveCullRef.current();
             paintScreenLayer(backdropRef.current, BACKDROP_DOT_WORLD, live.zoom, live.panOffset.x, live.panOffset.y);
             paintScreenLayer(screenGridRef.current, gridSize, live.zoom, live.panOffset.x, live.panOffset.y);
@@ -729,13 +709,10 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
                 {/* defs 里的 clipPath 是绝对坐标：必须拿呈现层，否则拖动圆角图片时裁剪区留在原地。 */}
                 <SVGDefs elements={presentElements} />
 
-                {/* 使用 will-change: transform 提示浏览器对该图层进行优化；
-                    有相机 store 时 transform 由 imperative 层独占（避免 React 与 rAF 互相覆盖）。 */}
+                {/* Store mode owns the native SVG transform; no CSS compositor layer. */}
                 <g
                     ref={viewportGroupRef}
-                    style={viewportStore
-                        ? { willChange: 'transform' }
-                        : { transform: canvasTransform, willChange: 'transform' }}
+                    transform={viewportStore ? undefined : canvasTransform}
                 >
                     {/* PureRef 对齐 ⑤：一键去色（整层滤镜，仅内容层不含选择手柄） */}
                     <g style={viewDesaturate ? { filter: 'grayscale(1)' } : undefined}>

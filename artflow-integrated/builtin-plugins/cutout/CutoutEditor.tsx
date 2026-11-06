@@ -308,7 +308,8 @@ export const CutoutEditor: React.FC<CutoutEditorProps> = ({ kernel, element, onC
   // —— 载入图片 → 建工作分辨率源图 / 掩码 / alpha / preview ——
   React.useEffect(() => {
     let cancelled = false;
-    const src = element.originalHref ?? element.href;
+    const galleryId = /^\/preview\/([a-f0-9-]{36})$/.exec(element.href)?.[1];
+    const src = galleryId ? `/canvas-image/${galleryId}` : element.originalHref ?? element.href;
     if (!src) {
       setError('元素没有可用的图片地址');
       return undefined;

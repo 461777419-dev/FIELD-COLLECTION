@@ -1189,6 +1189,15 @@ const App: React.FC = () => {
                  }
             }
 
+            if (e.defaultPrevented) return;
+            try {
+                const data = JSON.parse(e.clipboardData?.getData('text/plain') || '');
+                if (data?.type === 'artflow-elements' && Array.isArray(data.elements)) {
+                    e.preventDefault();
+                    handlePasteElements(data.elements, targetPoint);
+                    return;
+                }
+            } catch { /* External clipboard. */ }
             const items = e.clipboardData?.items;
             const pastedFiles: File[] = [];
             if (items) {

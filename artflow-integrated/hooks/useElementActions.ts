@@ -1,6 +1,6 @@
 
 import { useCallback, useRef } from 'react';
-import {durableAtlasValue} from '../utils/atlas-document';
+import {copyCanvasElements} from '../utils/canvasClipboard';
 // 修复：补全 ShapeElement 导入
 import type { Element, ImageElement, Rect, Point, GroupElement, VideoElement, FrameElement, ShapeElement } from '../types';
 import { 
@@ -77,18 +77,12 @@ export const useElementActions = ({
         if (selectedElementIds.length === 0) return;
         
         const elementsToCopy = getFlattenedSelection(selectedElementIds, elements);
-        const clipboardData = {
-            type: 'artflow-elements',
-            elements: elementsToCopy,
-        };
-
         try {
-            const value=location.pathname.startsWith('/board/') ? await durableAtlasValue(clipboardData) : clipboardData;
-            await navigator.clipboard.writeText(JSON.stringify(value));
+            await copyCanvasElements(elementsToCopy);
         } catch (e) {
-            console.error('Failed to copy to clipboard', e);
+            setError('复制失败：' + String(e));
         }
-    }, [selectedElementIds, elements]);
+    }, [selectedElementIds, elements, setError]);
 
     const handlePasteElements = useCallback((pastedElements: Element[], pasteCenter: Point) => {
         if (!pastedElements || pastedElements.length === 0) return;

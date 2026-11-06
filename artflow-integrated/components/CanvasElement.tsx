@@ -9,6 +9,7 @@ import { useImageLOD, resolveImageRenderRequirement, isSameImageRenderRequiremen
 import { usePreparedImageSource } from '../utils/usePreparedImageSource';
 import { isImageSourceReady, warmImageSources } from '../utils/imageWarmCache';
 import { recordProfilerRender } from '../utils/perfTelemetry';
+import { canvasImageSource } from '../utils/canvasImageSource';
 
 interface ImageCanvasElementProps {
   element: ImageElement;
@@ -24,16 +25,21 @@ const ImageCanvasElement: React.FC<ImageCanvasElementProps> = ({
   croppingState,
 }) => {
   const clipPath = element.borderRadius && element.borderRadius > 0 ? `url(#clip-${element.id})` : undefined;
+  // Gallery previews are capped at 1800px. Resolve old and new gallery references
+  // to a browser-decodable full-resolution source without rewriting documents.
+  const galleryId = /^\/preview\/([a-f0-9-]{36})$/.exec(element.href)?.[1];
+  const displayHref = galleryId ? `/canvas-image/${galleryId}` : element.href;
+  const displayOriginalHref = galleryId ? displayHref : element.originalHref;
   const desiredImage = useImageLOD(element.id, {
     zoom,
     // 原图准入按"屏幕像素"判定，所以必须把世界尺寸交给 LOD 层。
     width: element.width,
     height: element.height,
     isInteracting,
-    href: element.href,
+    href: displayHref,
     thumbnailHref: element.thumbnailHref,
     mediumHref: element.mediumHref,
-    originalHref: element.originalHref,
+    originalHref: displayOriginalHref,
     originalPixelWidth: element.originalPixelWidth,
     originalPixelHeight: element.originalPixelHeight,
   });
@@ -41,11 +47,11 @@ const ImageCanvasElement: React.FC<ImageCanvasElementProps> = ({
   // through a shared bounded queue, retaining the previous image until ready.
   const { src: imageSource, tier: imageLodTier, loadState } = usePreparedImageSource({
     elementId: element.id,
-    baseSrc: element.href,
-    desired: desiredImage,
+    baseSrc: displayHref,
+    desired: canvasImageSource(element, zoom) ? {src: canvasImageSource(element, zoom)!, tier: 'standard'} : desiredImage,
     fallback: element.thumbnailHref
       ? { src: element.thumbnailHref, tier: 'thumbnail' }
-      : { src: element.href, tier: 'standard' },
+      : { src: displayHref, tier: 'standard' },
   });
   // 采样模式来自与 memo 共用的判定（见 resolveImageRenderRequirement），
   // 不再就地写 zoom 比较 —— 否则 memo 漏掉这个变化时样式会永远停在旧值。
@@ -397,6 +403,7 @@ export const CanvasElement = React.memo(CanvasElementBase, (prev, next) => {
     if (prev.element.type === 'image' && next.element.type === 'image') {
         const prevElement = prev.element;
         const nextElement = next.element;
+        if (canvasImageSource(prevElement, prev.zoom) !== canvasImageSource(nextElement, next.zoom)) return false;
         const prevRequirement = resolveImageRenderRequirement({
             width: prevElement.width,
             height: prevElement.height,

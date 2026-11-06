@@ -43,7 +43,8 @@ if (!app.requestSingleInstanceLock()) {
         height: 900,
         minWidth: 760,
         minHeight: 560,
-        title: '探索者图集',
+        title: '图集画板',
+        icon: path.join(__dirname, 'src-tauri', 'icons', 'icon.ico'),
         backgroundColor: '#382217',
         autoHideMenuBar: true,
         webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, preload: path.join(__dirname, 'preload.js') }

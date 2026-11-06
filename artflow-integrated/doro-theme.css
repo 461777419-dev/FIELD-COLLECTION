@@ -1,8 +1,15 @@
 html.doro-board, .doro-board body, .doro-board #root {color-scheme:light;background:#fff8fb;color:#755e71;font-family:'Microsoft YaHei UI','Segoe UI',sans-serif;}
 .doro-board #root {--ui-text:#705b6d!important;--ui-bg-color:#ffffffed!important;--ui-hover:#fae8f1!important;--bp-canvas-bg:#fff8fb!important;--bp-canvas-bg-image:none!important;--bp-accent:#ca789e!important;--bp-accent-soft:#f6dfeb!important;--bp-ui-text:#705b6d!important;--bp-ui-text-muted:#9d859a!important;--bp-ui-border:#ecdce7!important;--bp-ui-surface:#ffffffed!important;--bp-ui-surface-strong:#fff!important;--bp-ui-hover:#faedf4!important;--bp-ui-radius:14px!important;--bp-ui-focus:#bf7fa7!important;--bp-ui-prompt-action:#c87ca1!important;--bp-font-ui:'Microsoft YaHei UI','Segoe UI',sans-serif!important;}
 .doro-board #root > div[data-bp-board-background="theme"] {background:#fff8fb!important;background-image:radial-gradient(#dfcbd840 .8px,transparent .8px)!important;background-size:22px 22px!important;}
-.doro-board [data-bp-ui-surface], .doro-board [role="dialog"], .doro-board [role="menu"] {background:#fffdfef5!important;color:#705b6d!important;border-color:#ead9e5!important;box-shadow:0 6px 24px #925d7a0e!important;backdrop-filter:blur(14px);}
+.doro-board [data-bp-ui-surface], .doro-board [role="dialog"], .doro-board [role="menu"] {background:#fffdfef8!important;color:#705b6d!important;border-color:#eadfe6!important;box-shadow:0 4px 16px #68455b0d!important;backdrop-filter:blur(10px);}
 .doro-board [data-bp-ui-surface] button, .doro-board [role="dialog"] button {color:#765b70;}
+.doro-board [data-bp-ui-surface] button {transition:background-color .14s,color .14s;}
+.doro-board [data-bp-ui-surface] button:hover:not(:disabled) {background-color:#f7edf3;}
+.doro-board [data-bp-ui-surface] button:active:not(:disabled) {background-color:#efdeea;}
+.doro-board [data-bp-ui-surface] svg {stroke-width:1.7;}
+.doro-board [data-media-toolbar] > div {background:#fffdfdf5!important;color:#765b70;border:1px solid #eadfe6;box-shadow:0 3px 12px #68455b12;}
+.doro-board [data-media-toolbar] button,.doro-board [data-media-toolbar] summary {color:#765b70;}
+.doro-board [data-media-toolbar] button:hover,.doro-board [data-media-toolbar] summary:hover {background:#f7edf3;}
 .doro-board [role="dialog"] input, .doro-board [role="dialog"] select, .doro-board [role="dialog"] textarea {background:#fff8fc!important;color:#6b5267!important;border-color:#e8d5e1!important;}
 .doro-board [role="dialog"] [class*="text-gray"],.doro-board [role="dialog"] [class*="text-neutral"] {color:#8e7388!important;}
 .doro-board [data-bp-ui-workspace-dock] {left:84px!important;bottom:116px!important;max-width:220px!important;}

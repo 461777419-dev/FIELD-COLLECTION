@@ -13,6 +13,9 @@
 //    统一量"外层容器"对两种方案都正确且只量一次布局，故保留该契约。
 // 注意：这是逻辑与源码检查，真机帧率仍需实测。
 require('./register-typescript.cjs');
+require.extensions['.css'] = () => {};
+globalThis.location = {pathname:'/', origin:'http://localhost'};
+globalThis.window = {innerWidth:1360, innerHeight:900};
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -38,11 +41,7 @@ const App = require('../App.tsx').default;
 const html = renderToStaticMarkup(React.createElement(App));
 const compact = html.replace(/\s+/g, '');
 
-// 相机载体必须是内层 <g>：SSR 走 store 分支（imperative 层独占 transform），
-// React markup 里 <g> 携带 will-change 而没有 translate3d。
-assert.match(compact, /<gstyle="will-change:transform"/, '相机载体必须是内层 <g>（will-change:transform）');
-assert.doesNotMatch(compact, /translate3d\(/, 'React 不得渲染 translate3d：store 模式下 transform 由 imperative 层独占');
-assert.match(compact, /will-change:transform/, '相机载体缺少 will-change:transform');
+assert.doesNotMatch(compact, /will-change:transform|translate3d\(/, '相机不可使用缓存 CSS 图层放大画面');
 // <svg> 根元素禁止携带相机变换（ADR-049 已被真机证伪，ADR-051 回退）。
 assert.doesNotMatch(
   html,
@@ -66,12 +65,9 @@ assert.match(canvasUtilsSource, /svg\?\.parentElement/);
 
 // 2. MainCanvas：transform 写在内层 <g> 上；<svg> 根不得承担相机变换。
 const mainCanvasSource = readCode('components/MainCanvas.tsx');
-assert.match(mainCanvasSource, /group\.style\.transform = `translate3d\(/, 'store 模式下 live transform 必须写内层 <g>');
-assert.match(
-  mainCanvasSource,
-  /transform: canvasTransform, willChange: 'transform'/,
-  '无 store 兼容路径也必须把相机挂在内层 <g> 上',
-);
+assert.match(mainCanvasSource, /group\.setAttribute\('transform'/, 'live camera must use native SVG transform');
+assert.match(mainCanvasSource, /transform=\{viewportStore \? undefined : canvasTransform\}/, 'fallback must use native SVG transform');
+assert.doesNotMatch(mainCanvasSource, /group\.style\.transform|willChange:/, 'camera must not promote the SVG to a bitmap layer');
 assert.doesNotMatch(mainCanvasSource, /svg\.style\.transform/, '相机 transform 不得写 <svg> 根元素（ADR-051）');
 assert.doesNotMatch(mainCanvasSource, /svg\.style\.willChange/, '<svg> 根不得设置 will-change（合成层豪赌已被真机证伪）');
 assert.doesNotMatch(

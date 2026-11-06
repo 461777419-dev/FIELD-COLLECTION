@@ -142,6 +142,7 @@ export const useKeyboardShortcuts = ({
         };
 
         const handlePasteEvent = async (e: ClipboardEvent) => {
+            if (e.defaultPrevented) return;
             const target = e.target as HTMLElement;
             const isTyping = target.tagName === 'INPUT' || 
                              target.tagName === 'TEXTAREA' || 
@@ -149,6 +150,17 @@ export const useKeyboardShortcuts = ({
             if (isTyping) return;
 
             const center = getCanvasCenterPoint ? getCanvasCenterPoint() : { x: 0, y: 0 };
+
+            // Our clipboard contains PNG plus editable JSON. Prefer the editable
+            // representation inside the board instead of flattening it as a file.
+            try {
+                const parsed = JSON.parse(e.clipboardData?.getData('text/plain') || '');
+                if (parsed?.type === 'artflow-elements' && Array.isArray(parsed.elements)) {
+                    e.preventDefault();
+                    handlePasteElements?.(parsed.elements, center);
+                    return;
+                }
+            } catch { /* External image/text clipboard. */ }
 
             // 1. Check if files in clipboard
             if (e.clipboardData?.files && e.clipboardData.files.length > 0) {

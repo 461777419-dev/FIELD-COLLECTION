@@ -5,7 +5,7 @@ const sharp = require('sharp');
 async function generateIcons() {
   const root = path.resolve(__dirname, '..');
   const iconDir = path.join(root, 'src-tauri', 'icons');
-  const source = path.join(root, 'assets', 'app-icon.png');
+  const source = path.join(root, 'assets', 'desktop-icon.png');
   const sizes = [16, 24, 32, 48, 64, 128, 256];
   fs.mkdirSync(iconDir, { recursive: true });
   const images = await Promise.all(sizes.map(size => sharp(source)

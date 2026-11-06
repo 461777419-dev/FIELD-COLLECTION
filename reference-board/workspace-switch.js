@@ -1,6 +1,7 @@
 (() => {
   const switcher=document.createElement('div');switcher.id='workspaceSwitcher';
-  switcher.innerHTML=`<button class="workspace-brand" id="workspaceTrigger" aria-expanded="false" aria-controls="workspaceMenu" title="点击切换；拖动名称可拆分窗口"><img src="/assets/app-icon.png" alt=""><span><strong id="workspaceTitle">图集</strong><small id="workspaceSubtitle">FIELD COLLECTION</small></span><span class="workspace-chevron" aria-hidden="true">⌄</span></button><div id="workspaceMenu" hidden><button id="galleryTab" aria-current="true"><img src="/assets/app-icon.png" alt="">图集</button><button id="boardTab" aria-current="false"><img src="/assets/doro/board-icon.png" alt="">画板</button><hr><button id="detachWorkspace">在独立窗口中打开 ↗</button></div><button class="workspace-ai" id="sharedAiSettings">AI 设置</button><button class="workspace-ai workspace-merge" id="mergeWorkspace" hidden>合并回主窗口 ↙</button>`;
+  switcher.innerHTML=`<button class="workspace-brand" id="workspaceTrigger" aria-expanded="false" aria-controls="workspaceMenu" title="点击切换；拖动名称可拆分窗口"><img src="/assets/app-icon.png?v=blue-portrait" alt=""><span><strong id="workspaceTitle">图集</strong><small id="workspaceSubtitle">FIELD COLLECTION</small></span><span class="workspace-chevron" aria-hidden="true">⌄</span></button><div id="workspaceMenu" hidden><button id="galleryTab" aria-current="true"><img src="/assets/app-icon.png?v=blue-portrait" alt="">图集</button><button id="boardTab" aria-current="false"><img src="/assets/doro/board-icon.png" alt="">画板</button><hr><button id="detachWorkspace">在独立窗口中打开 ↗</button></div><button class="workspace-ai" id="sharedAiSettings">AI 设置</button><button class="workspace-ai workspace-merge" id="mergeWorkspace" hidden>合并回主窗口 ↙</button>`;
+  switcher.querySelector('.workspace-chevron').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg>';
   document.body.append(switcher);
   const panel=document.createElement('section');panel.id='boardWorkspace';panel.hidden=true;panel.setAttribute('aria-label','画板工作空间');
   panel.innerHTML='<div class="board-shell-header"><strong>画板</strong><small>图库图片可直接拖入画布</small><div id="boardActionsHost"></div></div><iframe id="boardFrame" title="画板" src="about:blank"></iframe>';
@@ -17,7 +18,7 @@
     closeMenu();
     document.getElementById('workspaceTitle').textContent=board?'画板':'图集';
     document.getElementById('workspaceSubtitle').textContent=board?'LITTLE STUDIO':'FIELD COLLECTION';
-    switcher.querySelector('.workspace-brand > img').src=board?'/assets/doro/board-icon.png':'/assets/app-icon.png';
+    switcher.querySelector('.workspace-brand > img').src=board?'/assets/doro/board-icon.png':'/assets/app-icon.png?v=blue-portrait';
     if(board){flush();if(frameReady)frame.contentWindow.postMessage({type:'atlas:sync-catalog'},location.origin);}
     window.atlasWorkspaceChanged?.(mode);
   }

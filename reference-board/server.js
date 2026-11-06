@@ -486,6 +486,13 @@ const server = http.createServer(async (req, res) => {
     if (['GET','HEAD'].includes(req.method) && route.startsWith('/board-media/')) {
       const name=route.slice('/board-media/'.length);
       if (!/^[a-f0-9]{64}\.[a-z0-9]+$/.test(name)) return send(res,400,{error:'素材地址无效'});
+      if (req.method === 'GET' && url.searchParams.has('edge')) {
+        const edge=Number(url.searchParams.get('edge'));
+        if (![512,1024,2048,4096,8192].includes(edge)) return send(res,400,{error:'图片尺寸无效'});
+        const pixels=await sharp(path.join(boardDir,'media',name)).rotate().resize(edge,edge,{fit:'inside',withoutEnlargement:true}).png().toBuffer();
+        res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'private, max-age=3600'});
+        return res.end(pixels);
+      }
       return fileResponse(res,path.join(boardDir,'media',name),undefined,req);
     }
 
@@ -1117,6 +1124,27 @@ const server = http.createServer(async (req, res) => {
       const id = route.slice(7);
       const image = [...state.images, ...state.trash].find(item => item.id === id);
       return image ? fileResponse(res, mediaPath(image), undefined, req) : send(res, 404, { error: '图片不存在' });
+    }
+    if (req.method === 'GET' && route.startsWith('/canvas-image/')) {
+      const id = route.slice('/canvas-image/'.length);
+      const image = [...state.images, ...state.trash].find(item => item.id === id);
+      if (!image) return send(res, 404, { error: '图片不存在' });
+      if (url.searchParams.has('edge') && (ordinary.has(image.ext) || decoded.has(image.ext))) {
+        const edge=Number(url.searchParams.get('edge'));
+        if (![512,1024,2048,4096,8192].includes(edge)) return send(res,400,{error:'图片尺寸无效'});
+        const raster=rasterInputFor(fs.readFileSync(mediaPath(image)),image.ext);
+        const pixels=await sharp(raster.input,raster.options).rotate().resize(edge,edge,{fit:'inside',withoutEnlargement:true}).png().toBuffer();
+        res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'private, max-age=3600'});
+        return res.end(pixels);
+      }
+      // Browser-native images retain their original pixels and animation.
+      if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'].includes(image.ext)) return fileResponse(res, mediaPath(image));
+      // Decode TIFF/TGA/BMP/PSD at source resolution; other professional formats
+      // can only supply the embedded preview available to the existing decoder.
+      const parsed = await previewFor(fs.readFileSync(mediaPath(image)), image.ext, { fullResolution: true });
+      if (!parsed.preview) return send(res, 404, { error: '图片无法解码' });
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=3600' });
+      return res.end(parsed.preview);
     }
     if (req.method === 'GET' && route.startsWith('/preview/')) {
       const id = route.slice(9); const image = [...state.images, ...state.trash].find(item => item.id === id);

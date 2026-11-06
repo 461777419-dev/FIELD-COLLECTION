@@ -2,7 +2,7 @@
  * builtin/cutout —— 本地抠图插件。
  *
  * 入口三件套（都在插件侧，不碰本体）：
- * 1. canvas_widgets 浮层：选中单张图片时右下角浮出「抠图」按钮；打开后挂载 CutoutEditor 模态；
+ * 1. canvas_widgets：挂载 CutoutEditor 模态，入口位于选中图片的工具菜单；
  * 2. commands：命令面板「抠图（本地算法）」（Alt+Shift+K），选中非单张图片时自动置灰；
  * 3. kernel 事件总线（cutout:open）：命令与浮层按钮共用同一个打开通道。
  *
@@ -53,22 +53,8 @@ const CutoutWidget: React.FC<WorkspaceWidgetProps> = ({ kernel }) => {
     [kernel],
   );
 
-  const single = selectedSingleImage(kernel);
-
   return (
     <>
-      {single && target === null && (
-        <div data-bp-ui-floating-shell="" className="fixed bottom-4 right-4 z-40">
-          <button
-            type="button"
-            onClick={() => setTarget(single)}
-            title="抠图（魔法棒选中 + 涂抹/恢复羽化 + 缩放/平移）"
-            className="rounded-2xl border border-white/15 bg-neutral-950/85 px-3 py-2 text-xs font-medium text-white shadow-2xl backdrop-blur-xl transition hover:border-white/30 hover:bg-neutral-900/95"
-          >
-            抠图
-          </button>
-        </div>
-      )}
       {target && (
         <React.Suspense fallback={null}>
           <CutoutEditor key={target.id} kernel={kernel} element={target} onClose={() => setTarget(null)} />

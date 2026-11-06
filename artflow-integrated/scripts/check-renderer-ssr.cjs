@@ -5,6 +5,9 @@
 // 同时锁定 P1-B' 的渲染契约：React 不再拥有相机 transform，背景底板不再依赖相机值。
 // 这不是浏览器行为测试，不替代实际手势与帧率验证。
 require('./register-typescript.cjs');
+require.extensions['.css'] = () => {};
+globalThis.location = {pathname:'/', origin:'http://localhost'};
+globalThis.window = {innerWidth:1360, innerHeight:900};
 const assert = require('node:assert/strict');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -33,7 +36,7 @@ const compact = html.replace(/\s+/g, '');
 assert.ok(html.length > 500, 'App 渲染输出异常偏小，可能整棵子树提前 bail out');
 
 // 1. 相机图层必须存在，并且由 imperative 层独占 transform。
-assert.match(compact, /will-change:transform/, '相机图层缺少 will-change:transform');
+assert.doesNotMatch(compact, /will-change:transform/, '相机不应使用缓存的 CSS 合成层');
 assert.doesNotMatch(
   compact,
   /translate3d\(/,

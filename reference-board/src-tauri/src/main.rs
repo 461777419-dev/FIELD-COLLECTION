@@ -182,7 +182,7 @@ fn main() {
             )
             .data_directory(webview_data)
             .disable_drag_drop_handler()
-            .title("图集")
+            .title("图集画板")
             .inner_size(1360.0, 900.0)
             .min_inner_size(760.0, 560.0)
             .build().map_err(|error| {

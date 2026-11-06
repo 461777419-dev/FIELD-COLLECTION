@@ -1,6 +1,6 @@
 import React, {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Save,ImagePlus,Download,Settings2,FolderOpen,Contrast} from 'lucide-react';
+import {Save,Download,Settings2,FolderOpen,Contrast} from 'lucide-react';
 import type {Board,Element} from '../types';
 import {createNewBoard} from '../utils/canvasUtils';
 import type {CanvasViewportStore} from '../utils/viewport-store';
@@ -92,7 +92,7 @@ export function AtlasBoard(props:Props) {
             additions.push({id:crypto.randomUUID(),type:'video',name:item.name,href:'/media/'+item.id,mimeType:item.type,width:360,height:240,x:baseX-180+(index%3)*400,y:baseY-120+Math.floor(index/3)*340,rotation:0});continue;
           }
           if(item.hasPreview===false)continue;
-          const image=new Image();image.src='/preview/'+item.id;await image.decode();
+          const image=new Image();image.src='/canvas-image/'+item.id;await image.decode();
           const scale=Math.min(1,360/image.naturalWidth,300/image.naturalHeight);
           additions.push({id:crypto.randomUUID(),type:'image',name:item.name,href:'/preview/'+item.id,originalHref:'/media/'+item.id,mimeType:item.type || 'image/png',width:image.naturalWidth*scale,height:image.naturalHeight*scale,x:baseX-180+(index%3)*42,y:baseY-120+Math.floor(index/3)*42,rotation:0});
         }
@@ -226,7 +226,7 @@ export function AtlasBoard(props:Props) {
   },[ready,integrated,suspended]);
   if(!integrated)return null;
   const save=async()=>{setBusy(true);try{const ok=await props.onSave();if(ok)baseline.current=props.boards;setStatus(ok?'已保存到本地图库':'保存失败，请重试');}finally{setBusy(false);}};
-  const exportImage=async(collect:boolean)=>{
+  const exportImage=async()=>{
     setBusy(true);
     try {
       const all=props.elements;
@@ -236,11 +236,7 @@ export function AtlasBoard(props:Props) {
       if(width>10000||height>10000||width*height>16000000)throw Error('画板尺寸过大，请缩小内容或分批导出');
       const composed=await composeExportPng({elements:all,background:'#fff9fc',selectionIds:[]},false);
       if(!composed)throw Error('请先添加内容');
-      if(collect){
-        const response=await fetch('/api/images',{method:'POST',headers:{'Content-Type':'image/png','X-File-Name':encodeURIComponent('画板-'+Date.now()+'.png'),'X-Duplicate-Action':'keep'},body:composed.blob});
-        if(!response.ok)throw Error('收藏到图集失败');
-        parent.postMessage({type:'atlas:collected'},location.origin);setStatus('画板已收藏到图集');
-      }else {const url=URL.createObjectURL(composed.blob);const a=document.createElement('a');a.href=url;a.download='画板.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);setStatus('PNG 已导出');}
+      const url=URL.createObjectURL(composed.blob);const a=document.createElement('a');a.href=url;a.download='画板.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);setStatus('PNG 已导出');
     }catch(error){setStatus(String(error));}finally{setBusy(false);}
   };
   const actions = <div className="doro-actions" role="toolbar" aria-label="图集画板操作">
@@ -249,9 +245,7 @@ export function AtlasBoard(props:Props) {
       <button disabled={!ready||busy||suspended||!props.elements.length} onClick={props.onGrayscale} title="有选区时切换选中内容的去色；没有选区时切换整张画板。Ctrl+Z 撤销，原图不变。"><Contrast size={15}/>{props.elements.length>0&&props.elements.filter(element=>!element.isLocked&&(!props.selectedIds.length||props.selectedIds.includes(element.id))).every(element=>element.grayscale)?'恢复色彩':'一键去色'}</button>
       <button disabled={!ready||busy||suspended} onClick={async()=>{try{const link=linksRef.current.find(item=>item.boardId===props.activeBoardId);if(!link)throw Error('请先同步目录');const r=await fetch('/api/folders/'+link.folderId+'/open',{method:'POST'});if(!r.ok)throw Error((await r.json()).error);}catch(error){setStatus(String(error));}}} title={links.find(item=>item.boardId===props.activeBoardId)?.directory||'打开对应的本地文件夹'}><FolderOpen size={15}/>本地目录</button>
       <button className="atlas-save" disabled={!ready||busy||suspended} onClick={save}><Save size={15}/>保存画板</button>
-      <button disabled={!ready||busy||!props.elements.length} onClick={()=>exportImage(false)}><Download size={15}/>导出 PNG</button>
-      <button disabled={!ready||busy||!props.elements.length} onClick={()=>exportImage(true)}><ImagePlus size={15}/>收藏到图集</button>
-      {props.elements.some(element=>element.type==='image'&&props.selectedIds.includes(element.id)) && <button draggable onDragStart={event=>{const images=props.elements.filter(element=>element.type==='image'&&props.selectedIds.includes(element.id));event.dataTransfer.setData('application/x-atlas-canvas-images',JSON.stringify(images));event.dataTransfer.effectAllowed='copy';}} title="拖到图库窗口，已有素材直接选中，新素材会额外收藏">拖到图集 ↗</button>}
+      <button disabled={!ready||busy||!props.elements.length} onClick={()=>exportImage()}><Download size={15}/>导出 PNG</button>
     </div>;
   const host = window.parent !== window ? window.parent.document.getElementById('boardActionsHost') : null;
   return <>

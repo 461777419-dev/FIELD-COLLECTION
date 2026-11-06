@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { tryKernel } from '../plugin-runtime/instance';
 
 interface SmartToolbarProps {
     isVisible: boolean;
@@ -43,6 +44,9 @@ export const SmartToolbar: React.FC<SmartToolbarProps> = ({
         >
             {selectionType === 'single-image' && (
                 <>
+                    <button title="抠图" aria-label="抠图" onClick={() => tryKernel()?.emit('cutout:open')} className="p-2 rounded-full hover:bg-white/20 text-white transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 20l5-1L20 8l-4-4L5 15zM3 8h5M5.5 5.5v5M15 18h6M18 15v6"/></svg>
+                    </button>
                     <button title={t('contextMenu.aiRotate')} onClick={onAIRotate} className="p-2 rounded-full hover:bg-white/20 text-white transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M22 4h-4v4"/><path d="m12 6-1.9 4.8-4.8 1.9 4.8 1.9L12 18l1.9-4.8 4.8-1.9-4.8-1.9L12 6Z"/></svg>
                     </button>

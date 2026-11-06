@@ -4,7 +4,7 @@
 `Field-Collection_1.0.3_x64-setup.exe`。
 
 安装包 SHA256：
-`59f2a436354b5e4aa7033fbe8ae4e2a63745be4385374f100717e9efcc336a86`。
+`6ef8cb445900f8724cef1282762c90e109a5b98a986b97911b090c9c21b4e0ce`。
 
 ## 目录
 
@@ -47,8 +47,8 @@ npm run build:win
 版本号统一位于图集的 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 与 `src-tauri/tauri.conf.json`。
 画板保留其原子项目版本号，并非整合版发行版本。
 
-源码在安装包发布后补交，**原 v1.0.3 标签指向发布时仓库已有提交，不包含此次源码**。
-本次不移动现有标签；请以本源码导入提交或后续提交为准。构建工具、运行时和打包元数据可能变化，因此不承诺重建 EXE 字节级一致。
+现有 v1.0.3 发布的安装包已替换为本次修订构建，版本号保持 1.0.3。
+v1.0.3 标签同步指向本次源码提交，GitHub 的 Source code 下载与该提交一致。构建工具、运行时和打包元数据可能变化，因此不承诺重建 EXE 字节级一致。
 
 ## 更新签名与用户数据
 

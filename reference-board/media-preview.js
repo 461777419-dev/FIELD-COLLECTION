@@ -85,7 +85,7 @@ function embeddedPreview(buffer) {
   return candidates.sort((a, b) => b.length - a.length).slice(0, 8);
 }
 
-async function previewFor(buffer, ext) {
+async function previewFor(buffer, ext, { fullResolution = false } = {}) {
   if (video.has(ext)) return { width: 0, height: 0, preview: null, animated: false };
   let width = 0, height = 0, preview = null, animated = false;
   if (ordinary.has(ext) || decoded.has(ext)) {
@@ -96,11 +96,17 @@ async function previewFor(buffer, ext) {
     if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'].includes(ext) && !animated && width <= 1800 && height <= 1800 && (!metadata.orientation || metadata.orientation === 1)) {
       return { width, height, preview: null, animated, reuseOriginal: true };
     }
-    preview = await sharp(raster.input, { ...raster.options, animated: false }).rotate().resize(1800, 1800, { fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+    let pipeline = sharp(raster.input, { ...raster.options, animated: false }).rotate();
+    if (!fullResolution) pipeline = pipeline.resize(1800, 1800, { fit: 'inside', withoutEnlargement: true });
+    preview = await pipeline.png().toBuffer();
   } else if (ext === '.psd' || ext === '.psb') {
     const psd = readPsd(buffer, { useImageData: true, skipLayerImageData: true, skipThumbnail: true });
     width = psd.width; height = psd.height;
-    if (psd.imageData) preview = await sharp(Buffer.from(psd.imageData.data), { raw: { width, height, channels: 4 } }).resize(1800, 1800, { fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+    if (psd.imageData) {
+      let pipeline = sharp(Buffer.from(psd.imageData.data), { raw: { width, height, channels: 4 } });
+      if (!fullResolution) pipeline = pipeline.resize(1800, 1800, { fit: 'inside', withoutEnlargement: true });
+      preview = await pipeline.png().toBuffer();
+    }
   } else {
     if (ext === '.ai' && buffer.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
       try {
