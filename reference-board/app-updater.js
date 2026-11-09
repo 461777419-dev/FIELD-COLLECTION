@@ -79,18 +79,33 @@ function createUpdater({ directory, config, version, desktop=false, fetcher=fetc
     const plan={jobDir,version:staged.version,desktopPid:String(desktopPid),desktopExe,installDir:path.dirname(desktopExe),installer:staged.file,size:staged.size,sha256:staged.sha256,exitTimeoutSeconds};
     const planFile=path.join(jobDir,'plan.json');fs.writeFileSync(planFile,JSON.stringify(plan));
     const script=fs.readFileSync(path.join(__dirname,'update-install-helper.ps1'),'utf8');
+    const logFile=path.join(jobDir,'install.log');
+    const helperPidFile=path.join(jobDir,'helper.pid');
+    installJob={jobDir};fs.writeFileSync(installStateFile,JSON.stringify(installJob));
+    fs.appendFileSync(logFile,new Date().toISOString()+' starting 更新助手启动中\n');
+    const encodedHelper=Buffer.from(script,'utf16le').toString('base64');
+    // Start-Process gives the helper its own hidden console. DETACHED_PROCESS
+    // alone can make PowerShell exit without executing; sharing Node's console
+    // instead can terminate PowerShell when the backend exits.
+    const bootstrap=`$ErrorActionPreference='Stop'
+      $jobDir=[IO.Path]::GetDirectoryName($env:ATLAS_UPDATE_PLAN)
+      $helper=Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand','${encodedHelper}') -RedirectStandardOutput (Join-Path $jobDir 'helper-stdout.log') -RedirectStandardError (Join-Path $jobDir 'helper-stderr.log') -PassThru
+      [IO.File]::WriteAllText((Join-Path $jobDir 'helper.pid'),[string]$helper.Id)`;
     let child;
     try {
-      await new Promise((resolve,reject)=>{child=launch('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{detached:true,windowsHide:true,stdio:'ignore',env:{...process.env,ATLAS_UPDATE_PLAN:planFile}});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
-      // Do not close the app until the detached helper has actually initialized.
+      const logFd=fs.openSync(path.join(jobDir,'helper-launch.log'),'a');
+      try {
+        await new Promise((resolve,reject)=>{child=launch('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(bootstrap,'utf16le').toString('base64')],{detached:false,windowsHide:true,stdio:['ignore',logFd,logFd],env:{...process.env,ATLAS_UPDATE_PLAN:planFile}});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+      } finally {fs.closeSync(logFd);}
+      // Do not close the app until the independent helper has initialized.
       const deadline=Date.now()+helperTimeout;
       while(Date.now()<deadline){
         try{const result=JSON.parse(fs.readFileSync(path.join(jobDir,'status.json'),'utf8').replace(/^\uFEFF/,''));if(result.phase==='error')throw Error(result.message);if(result.phase==='waiting'){installJob={jobDir};fs.writeFileSync(installStateFile,JSON.stringify(installJob));state.phase='installing';return status();}}catch(error){if(error.code!=='ENOENT'&&!(error instanceof SyntaxError))throw error;}
-        if(child.exitCode!==null&&child.exitCode!==undefined)throw Error('安装助手提前退出，请查看日志或手动安装');
+        if(child.exitCode!==null&&child.exitCode!==undefined&&(child.exitCode!==0||!fs.existsSync(helperPidFile)))throw Error('安装助手提前退出（退出码 '+child.exitCode+'），日志：'+logFile);
         await new Promise(resolve=>setTimeout(resolve,100));
       }
       throw Error('安装助手未能就绪，图集已保留打开；请手动运行安装包');
-    }catch(error){child?.kill?.();state.phase='ready';state.error=error.message;throw error;}
+    }catch(error){child?.kill?.();try{const pid=Number(fs.readFileSync(helperPidFile,'utf8'));if(Number.isSafeInteger(pid)&&pid>0)process.kill(pid);}catch{}fs.appendFileSync(logFile,new Date().toISOString()+' error '+error.message+'；启动诊断见同目录 helper-launch.log、helper-stderr.log\n');state.phase='ready';state.error=error.message;throw error;}
   }
   return {status,savePreferences,check,download,install};
 }
