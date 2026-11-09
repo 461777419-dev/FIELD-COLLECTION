@@ -76,8 +76,9 @@ async fn open_search_window(app: tauri::AppHandle, provider_id: String, query: S
 }
 
 #[tauri::command]
-fn drag_images_out(window: tauri::WebviewWindow, library: tauri::State<'_, LibraryPath>, ids: Vec<String>) -> Result<(), String> {
-    if ids.is_empty() || ids.len() > 100 { return Err("请选择要拖出的图片".into()); }
+fn drag_images_out(window: tauri::WebviewWindow, library: tauri::State<'_, LibraryPath>, ids: Vec<String>, board_files: Option<Vec<String>>) -> Result<(), String> {
+    let board_files = board_files.unwrap_or_default();
+    if ids.len() + board_files.len() == 0 || ids.len() + board_files.len() > 100 { return Err("请选择 1 至 100 张图片".into()); }
     let content = std::fs::read(library.0.join("library.json")).map_err(|error| error.to_string())?;
     let state: serde_json::Value = serde_json::from_slice(&content).map_err(|error| error.to_string())?;
     let images = state["images"].as_array().ok_or("图库数据无效")?;
@@ -103,6 +104,17 @@ fn drag_images_out(window: tauri::WebviewWindow, library: tauri::State<'_, Libra
             return Err("图片路径无效".into());
         }
         std::fs::copy(library.0.join("media").join(stored), &target).map_err(|error| error.to_string())?;
+        files.push(target);
+    }
+    for (index, name) in board_files.iter().enumerate() {
+        let (hash, ext) = name.rsplit_once('.').ok_or("画板图片路径无效")?;
+        if hash.len() != 64 || !hash.bytes().all(|c| c.is_ascii_hexdigit()) ||
+            !["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].contains(&ext) {
+            return Err("画板图片路径无效".into());
+        }
+        let source = library.0.join("board").join("media").join(name);
+        let target = export_dir.join(format!("{}-画板图片.{ext}", ids.len() + index + 1));
+        std::fs::copy(source, &target).map_err(|error| error.to_string())?;
         files.push(target);
     }
     let drag_window = window.clone();

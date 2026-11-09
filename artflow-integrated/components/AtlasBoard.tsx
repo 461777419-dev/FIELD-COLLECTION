@@ -9,9 +9,11 @@ import {getElementBounds} from '../utils/canvasUtils';
 import {durableAtlasValue} from '../utils/atlas-document';
 import {mergeAtlasSync} from '../utils/atlas-sync';
 import {createCanvasNavigatorModel,fitCanvasViewport} from '../utils/canvasNavigator';
+import {AtlasSelectionTools} from './AtlasSelectionTools';
 
 interface Props {
   dirty:boolean; boards: Board[]; activeBoardId:string; elements:Element[]; selectedIds:string[];
+  setSelectedIds:(ids:string[])=>void;
   setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   setActiveBoardId:(id:string)=>void; addElements:(elements:Element[])=>void;
   onSave:()=>Promise<boolean>; viewportStore:CanvasViewportStore;
@@ -240,6 +242,7 @@ export function AtlasBoard(props:Props) {
     }catch(error){setStatus(String(error));}finally{setBusy(false);}
   };
   const actions = <div className="doro-actions" role="toolbar" aria-label="图集画板操作">
+      <AtlasSelectionTools elements={props.elements} selectedIds={props.selectedIds} activeBoardId={props.activeBoardId} setSelectedIds={props.setSelectedIds} ready={ready} suspended={suspended}/>
       {syncError&&<button onClick={()=>void autoSyncRef.current()}>重试同步</button>}
       <span className="doro-save-state" role="status" title={status}>{props.dirty ? '未保存 · '+status : status}</span>
       <button disabled={!ready||busy||suspended||!props.elements.length} onClick={props.onGrayscale} title="有选区时切换选中内容的去色；没有选区时切换整张画板。Ctrl+Z 撤销，原图不变。"><Contrast size={15}/>{props.elements.length>0&&props.elements.filter(element=>!element.isLocked&&(!props.selectedIds.length||props.selectedIds.includes(element.id))).every(element=>element.grayscale)?'恢复色彩':'一键去色'}</button>

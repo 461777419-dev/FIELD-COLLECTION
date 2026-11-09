@@ -1162,7 +1162,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': 'attachment; filename="reference-board-library.json"' });
       return res.end(JSON.stringify(state, null, 2));
     }
-    if (req.method === 'GET' && ['/', '/index.html', '/search-bar.html', '/image-search-window.html', '/image-search-window.js', '/image-search.js', '/image-search.css', '/app.css', '/journal.css', '/atlas.css', '/atlas-tuning.css', '/improvements.css', '/improvements.js', '/app.js', '/search-bar.js', '/lucide.min.js', '/botanical-plate.svg', '/field-map.svg', '/update-ui.js', '/workspace-switch.js', '/workspace-switch.css', '/workspace-windows.js', '/album.css', '/album.js', '/whale.css', '/wave.css', '/whale.js', '/attribution.html'].includes(route)) {
+    if (req.method === 'GET' && ['/', '/index.html', '/search-bar.html', '/image-search-window.html', '/image-search-window.js', '/image-search.js', '/image-search.css', '/app.css', '/journal.css', '/atlas.css', '/atlas-tuning.css', '/improvements.css', '/improvements.js', '/app.js', '/search-bar.js', '/lucide.min.js', '/botanical-plate.svg', '/field-map.svg', '/update-ui.js', '/workspace-switch.js', '/workspace-selection.js', '/workspace-switch.css', '/workspace-windows.js', '/album.css', '/album.js', '/whale.css', '/wave.css', '/whale.js', '/attribution.html'].includes(route)) {
       return fileResponse(res, path.join(root, route === '/' ? 'index.html' : route.slice(1)), 'no-store');
     }
     send(res, 404, { error: '未找到页面' });

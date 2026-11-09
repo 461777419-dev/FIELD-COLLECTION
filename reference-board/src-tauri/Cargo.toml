@@ -1,6 +1,6 @@
 [package]
 name = "explorer-field-journal"
-version = "1.0.3"
+version = "1.0.4"
 description = "图集"
 edition = "2021"
 

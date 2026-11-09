@@ -348,6 +348,16 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         style={{ willChange: isSelected && selectedElementIds.length === 1 ? 'transform' : 'auto' }}
       >
         {renderContent()}
+        {element.type==='image'&&isSelected&&!element.isLocked&&location.pathname.startsWith('/board/')&&(
+          <foreignObject x={bounds.x+bounds.width-30/zoom} y={bounds.y+5/zoom} width={25/zoom} height={25/zoom} style={{overflow:'visible'}}>
+            <button className="atlas-image-drag-out" data-atlas-drag-out={element.id} draggable aria-label="拖出图片" title="按住小图标拖出图片；拖动图片主体可正常挪动"
+              style={{width:25,height:25,transform:`scale(${1/zoom})`,transformOrigin:'top left'}}
+              onPointerDown={event=>event.stopPropagation()} onMouseDown={event=>event.stopPropagation()} onClick={event=>event.stopPropagation()}
+              onDragStart={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('atlas:image-drag-start',{detail:{id:element.id,event:event.nativeEvent}}));}}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            </button>
+          </foreignObject>
+        )}
       </g>
     </Profiler>
   );
@@ -429,7 +439,7 @@ export const CanvasElement = React.memo(CanvasElementBase, (prev, next) => {
     // 但是，Frame 元素的文字大小和描边 dasharray 依赖 zoom。
     // Path 元素的 strokeWidth 如果是固定像素视觉，也依赖 zoom。
     // 目前代码中 Frame 的 strokeWidth = 2/zoom。
-    if (prev.element.type === 'frame' || prev.element.type === 'path' || prev.element.type === 'shape' || prev.element.type === 'arrow' || prev.element.type === 'line') {
+    if ((prev.element.type === 'image' && isSelected) || prev.element.type === 'frame' || prev.element.type === 'path' || prev.element.type === 'shape' || prev.element.type === 'arrow' || prev.element.type === 'line') {
         if (prev.zoom !== next.zoom) return false;
     }
 

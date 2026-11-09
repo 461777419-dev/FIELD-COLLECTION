@@ -1,6 +1,6 @@
 {
   "name": "reference-board",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "productName": "图集",
   "private": true,
   "scripts": {

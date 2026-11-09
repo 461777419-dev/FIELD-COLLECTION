@@ -15,7 +15,7 @@ const files = [
   'botanical-plate.svg', 'field-map.svg', 'package.json', 'package-lock.json',
   'image-search.js', 'image-search.css', 'image-search-window.html', 'image-search-window.js', 'search-providers.json',
   'album.css', 'album.js', 'whale.css', 'wave.css', 'whale.js', 'attribution.html',
-  'workspace-switch.js', 'workspace-switch.css', 'workspace-windows.js', 'board-library.js'
+  'workspace-switch.js', 'workspace-selection.js', 'workspace-switch.css', 'workspace-windows.js', 'board-library.js'
 ];
 for (const file of files) fs.copyFileSync(path.join(root, file), path.join(runtime, file));
 fs.cpSync(path.join(root, 'assets', 'search-sites'), path.join(runtime, 'assets', 'search-sites'), { recursive:true });

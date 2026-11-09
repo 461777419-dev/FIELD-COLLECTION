@@ -1,16 +1,16 @@
-# 图集 v1.0.3 源码与构建
+# 图集 v1.0.4 源码与构建
 
 本次提交对应已发布的 Windows x64 安装包：
-`Field-Collection_1.0.3_x64-setup.exe`。
+`Field-Collection_1.0.4_x64-setup.exe`。
 
 安装包 SHA256：
-`6ef8cb445900f8724cef1282762c90e109a5b98a986b97911b090c9c21b4e0ce`。
+`9c266aaca310c313d26c9a98d93d8e2cf3908ac9259eae271f06dafff00fee31`。
 
 ## 目录
 
 - `reference-board/`：图集界面、本地 Node 服务、Tauri 桌面壳、自动更新及相关测试。
 - `artflow-integrated/`：整合画板的 React / TypeScript 源码、Doro 主题、素材互通和画板资源。
-- `CHANGELOG-1.0.3.md`：本次正式版本更新说明。
+- `CHANGELOG-1.0.4.md`：本次正式版本更新说明。
 
 根目录原 README 及其图片保留。两份子项目 README 包含各自历史开发入口；整合版请以下列步骤为准。
 
@@ -34,7 +34,7 @@ npm run build:win
 ```
 
 默认安装包位于：
-`reference-board/src-tauri/target/release/bundle/nsis/图集_1.0.3_x64-setup.exe`。
+`reference-board/src-tauri/target/release/bundle/nsis/图集_1.0.4_x64-setup.exe`。
 若设置了 `CARGO_TARGET_DIR`，则使用对应目标目录。
 发布附件采用英文名以避免 GitHub 自动调整中文文件名；改名不改变安装包内容。
 
@@ -43,12 +43,12 @@ npm run build:win
 
 ## 版本与发布历史
 
-本版本代码包含此前本地测试版 1.0.4 的更新流程修复，正式版本按要求标为 1.0.3。
+本次为正式发布版本 1.0.4，包含画板图片拖出与图集/画板选中联动更新。
 版本号统一位于图集的 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 与 `src-tauri/tauri.conf.json`。
 画板保留其原子项目版本号，并非整合版发行版本。
 
-现有 v1.0.3 发布的安装包已替换为本次修订构建，版本号保持 1.0.3。
-v1.0.3 标签同步指向本次源码提交，GitHub 的 Source code 下载与该提交一致。构建工具、运行时和打包元数据可能变化，因此不承诺重建 EXE 字节级一致。
+v1.0.4 为新的正式发布；此前 v1.0.3 安装包、发布说明和标签保留。
+v1.0.4 标签同步指向本次源码提交，GitHub 的 Source code 下载与该提交一致。构建工具、运行时和打包元数据可能变化，因此不承诺重建 EXE 字节级一致。
 
 ## 更新签名与用户数据
 

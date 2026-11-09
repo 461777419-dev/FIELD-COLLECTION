@@ -55,3 +55,11 @@ html.doro-board, .doro-board body, .doro-board #root {color-scheme:light;backgro
 
 /* Keep the lower-right canvas free of miniature previews. */
 html.doro-board [data-bp-ui-navigator] {display:none !important;}
+.atlas-selection-tools{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.atlas-image-drag-out{display:grid;place-items:center;border:1px solid #dce5f0;border-radius:2px;background:#f9fbff;color:#6c8db9;padding:0;cursor:grab;touch-action:none;user-select:none}
+.atlas-image-drag-out:hover{background:#ecf3fe;border-color:#9db6d7;color:#466c9f}
+.atlas-image-drag-out:focus-visible{outline:2px solid #7299cd;outline-offset:2px}
+.atlas-image-drag-out:active{cursor:grabbing}
+.atlas-selection-tools button[draggable="true"]{cursor:grab}
+.atlas-selection-tools button[draggable="true"]:active{cursor:grabbing}
+.atlas-selection-feedback{font-size:12px;color:#675766;max-width:280px;line-height:1.4}

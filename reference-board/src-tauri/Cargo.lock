@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "explorer-field-journal"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "drag",
  "serde_json",

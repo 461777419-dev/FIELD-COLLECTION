@@ -631,6 +631,7 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
         return (elements.find((element): element is ImageElement => element.id === id && element.type === 'image') ?? null);
     };
     const handleCanvasDownCapture = (event: React.MouseEvent<SVGSVGElement>) => {
+        if ((event.target as globalThis.Element).closest?.('[data-atlas-drag-out]')) return;
         if (event.button === 2) { windowMove.onMouseDownCapture(event); return; }
         // The second mousedown in a double-click must not start a new image
         // drag/resize; the subsequent dblclick will commit the camera once.

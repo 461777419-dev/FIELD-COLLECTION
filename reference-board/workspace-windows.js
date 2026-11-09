@@ -14,6 +14,7 @@
     const channel=new BroadcastChannel('atlas-windows-'+token);
     const peers=new Map(),pending=new Map();
     let lastBoard=null,hydrating=false,initialized=!child,merging=false,dragging=false;
+    window.atlasOwnsWorkspace=tool=>initialized&&!hydrating&&(child?mode===tool:!peers.has(tool));
     const invoke=window.__TAURI__?.core?.invoke||window.__TAURI_INTERNALS__?.invoke;
     const send=(type,data={},to='owner')=>channel.postMessage({type,...data,from:self,to});
     const post=data=>apiUI.getFrame().contentWindow?.postMessage(data,location.origin);
@@ -33,7 +34,11 @@
       render();requestAnimationFrame(()=>{const area=document.querySelector('.gallery-area');if(area&&snapshot)area.scrollTop=snapshot.scroll;});
     }
     async function snapshot(tool){if(tool==='gallery')return gallerySnapshot();await frameReady();return wait('atlas:request-snapshot',{});}
-    async function hydrate(tool,value){if(tool==='gallery')return hydrateGallery(value);hydrating=true;try{await frameReady();await wait('atlas:hydrate',{snapshot:value});lastBoard=value;}finally{hydrating=false;}}
+    async function hydrate(tool,value){
+      hydrating=true;window.atlasSelectionTransfer?.(true);
+      try{if(tool==='gallery')await hydrateGallery(value);else{await frameReady();await wait('atlas:hydrate',{snapshot:value});lastBoard=value;}}
+      finally{hydrating=false;window.atlasSelectionTransfer?.(false);}
+    }
     const mask=document.createElement('div');mask.id='workspaceDetached';mask.hidden=true;mask.innerHTML='<div><strong>此工作区已在独立窗口打开</strong><p>内容在独立窗口编辑，合并后继续使用。</p><button id="focusWorkspace">显示独立窗口</button><button id="dockWorkspace">合并回此窗口</button></div>';document.body.append(mask);
     const busy=document.createElement('div');busy.id='workspaceTransfer';busy.hidden=true;busy.textContent='正在同步工作区，请稍候…';document.body.append(busy);
     function redraw(){const peer=peers.get(apiUI.getMode());mask.hidden=child||!peer;const actions=document.getElementById('boardActionsHost');if(actions)actions.inert=!child&&peers.has('board');if(apiUI.isFrameReady())post({type:'atlas:editor-lock',locked:!child&&peers.has('board')});document.getElementById('detachWorkspace').textContent=child?'合并回主窗口 ↙':peer?'显示独立窗口 ↗':'在独立窗口中打开 ↗';}

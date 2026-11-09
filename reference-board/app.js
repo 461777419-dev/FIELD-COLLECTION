@@ -186,6 +186,7 @@ $('#inspector').addEventListener('input', event => {
   if (paletteCache.has(id)) paintSamplePalette(id, paletteCache.get(id));
 });
 function renderInspector() {
+  window.atlasGallerySelectionChanged?.();
   const image = [...state.images, ...state.trash].find(item => item.id === state.selectedId);
   if (state.selectedIds.length > 1) {
     $('#inspectorContent').className = 'inspector-multi';

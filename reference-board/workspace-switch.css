@@ -43,6 +43,12 @@
 @media(prefers-reduced-motion:reduce){#workspaceSwitcher *,#boardActionsHost *{transition:none!important;}}
 #boardActionsHost {left:245px;}
 #boardActionsHost .doro-actions {justify-content:flex-end;flex-wrap:wrap;gap:6px;}
+#boardActionsHost .atlas-selection-tools {display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;}
+#boardActionsHost .atlas-selection-tools button[draggable="true"] {cursor:grab;}
+#boardActionsHost .atlas-selection-feedback {position:absolute;top:calc(100% + 7px);right:0;max-width:420px;padding:6px 10px;background:#fffafdf5;border:1px solid #eadce5;border-radius:8px;color:#725466;font-size:12px;z-index:3;}
+#boardActionsHost:has(.atlas-selection-tools) {top:28px;}
+.board-shell-header:has(.atlas-selection-tools)>strong,.board-shell-header:has(.atlas-selection-tools)>small {visibility:hidden;}
+@media(max-width:1050px){#boardWorkspace:has(.atlas-selection-tools) #boardFrame{top:132px;height:calc(100% - 132px);} .board-shell-header:has(.atlas-selection-tools){height:132px;}}
 #boardActionsHost button {padding:8px 9px;}
 @media(max-width:1150px){.board-shell-header>strong,.board-shell-header>small{display:none;}#boardActionsHost{top:28px;}#boardActionsHost .doro-save-state{font-size:11px;}}
 .workspace-brand {touch-action:none;user-select:none;}
