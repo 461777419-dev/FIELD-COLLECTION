@@ -6,6 +6,8 @@ import { ElementToolbar } from './ElementToolbar';
 
 interface ToolbarOverlayProps {
     zoom: number;
+    panOffset?: {x:number;y:number};
+    viewportSize?: {width:number;height:number};
     selectedElementIds: string[];
     elements: Element[];
     singleSelectedElement: Element | null;
@@ -32,6 +34,8 @@ interface ToolbarOverlayProps {
 
 export const ToolbarOverlay: React.FC<ToolbarOverlayProps> = ({
     zoom,
+    panOffset = {x:0,y:0},
+    viewportSize,
     selectedElementIds,
     elements,
     singleSelectedElement,
@@ -112,15 +116,19 @@ export const ToolbarOverlay: React.FC<ToolbarOverlayProps> = ({
         }
 
         const isMedia = ['image', 'video', 'audio'].includes(element.type);
-        // Keep selected-media actions inside the picture, including small cards at low zoom.
+        // Media controls stay readable at every zoom, outside the image and its drag icon.
         if (isMedia) toolbarScreenWidth = element.type === 'image' ? 192 : 112;
-        const toolbarZoom = isMedia ? Math.max(zoom, (toolbarScreenWidth + 16) / Math.max(bounds.width, 1), 56 / Math.max(bounds.height, 1)) : zoom;
+        const toolbarZoom = zoom;
         const toolbarScreenHeight = isMedia ? 40 : 48;
         const toolbarCanvasWidth = toolbarScreenWidth / toolbarZoom;
         const toolbarCanvasHeight = toolbarScreenHeight / toolbarZoom;
         
-        const x = isMedia ? bounds.x + bounds.width - toolbarCanvasWidth - 8 / toolbarZoom : bounds.x + bounds.width / 2 - (toolbarCanvasWidth / 2);
-        const y = isMedia ? bounds.y + 8 / toolbarZoom : bounds.y - toolbarCanvasHeight - (35 / zoom);
+        let x = bounds.x + bounds.width / 2 - toolbarCanvasWidth / 2;
+        let y = bounds.y - toolbarCanvasHeight - 35 / zoom;
+        if(isMedia){
+            const placement=placeMediaToolbar(getSelectionBounds([element.id],elements),zoom,panOffset,viewportSize,toolbarScreenWidth,toolbarScreenHeight);
+            x=placement.x;y=placement.y;
+        }
 
         return (
             <foreignObject x={x} y={y} width={toolbarCanvasWidth} height={toolbarCanvasHeight} style={{ overflow: 'visible' }}>
@@ -143,3 +151,15 @@ export const ToolbarOverlay: React.FC<ToolbarOverlayProps> = ({
 
     return null;
 };
+
+export function placeMediaToolbar(bounds:Rect,zoom:number,pan:{x:number;y:number},viewport:{width:number;height:number}|undefined,width:number,height:number){
+    const gap=12,margin=8;
+    const left=bounds.x*zoom+pan.x,right=(bounds.x+bounds.width)*zoom+pan.x;
+    const top=bounds.y*zoom+pan.y,bottom=(bounds.y+bounds.height)*zoom+pan.y;
+    const maxX=viewport?Math.max(margin,viewport.width-width-margin):Infinity;
+    const screenX=Math.min(maxX,Math.max(margin,(left+right-width)/2));
+    // Leave room for the selection's rotation handle above the image.
+    const above=top-height-36;
+    const screenY=above>=margin?above:bottom+gap;
+    return {x:(screenX-pan.x)/zoom,y:(screenY-pan.y)/zoom};
+}

@@ -7,12 +7,14 @@ import {selectionPng,copyCanvasElements} from '../utils/canvasClipboard';
 interface Props {
   elements:Element[]; selectedIds:string[]; activeBoardId:string;
   setSelectedIds:(ids:string[])=>void; ready:boolean; suspended:boolean;
+  onRevealSelection:(ids:string[])=>boolean;
 }
 interface ExportFile { file:File; url:string; galleryId?:string; boardFile?:string }
 export function AtlasSelectionTools(props:Props) {
   const latest=useRef(props);latest.current=props;
   const catalog=useRef<GalleryIdentity[]>([]);
-  const incoming=useRef<string[]|null>(null);
+  const incoming=useRef<{ids:string[];revealKey:string|null}|null>(null);
+  const lastRevealed=useRef<string|null>(null);
   const expected=useRef<string|null>(null);
   const lastSelection=useRef('[]');
   const selectionReady=useRef(false);
@@ -22,9 +24,11 @@ export function AtlasSelectionTools(props:Props) {
   const key=JSON.stringify(props.selectedIds);
   const apply=()=>{
     if(!latest.current.ready||latest.current.suspended||incoming.current===null)return;
-    const ids=boardSelection(latest.current.elements,incoming.current,catalog.current);
+    const ids=boardSelection(latest.current.elements,incoming.current.ids,catalog.current);
     expected.current=JSON.stringify(ids);lastSelection.current=expected.current;
     if(JSON.stringify(latest.current.selectedIds)!==expected.current)latest.current.setSelectedIds(ids);
+    const revealKey=incoming.current.revealKey;
+    if(revealKey&&revealKey!==lastRevealed.current&&ids.length&&latest.current.onRevealSelection(ids))lastRevealed.current=revealKey;
     incoming.current=null;selectionReady.current=true;
   };
   useEffect(()=>{
@@ -38,7 +42,7 @@ export function AtlasSelectionTools(props:Props) {
       }
       if(event.data?.type!=='atlas:selection-apply'||!Array.isArray(event.data.ids))return;
       catalog.current=Array.isArray(event.data.catalog)?event.data.catalog:[];
-      incoming.current=event.data.ids;apply();
+      incoming.current={ids:event.data.ids,revealKey:event.data.reveal?`${event.data.author||''}:${event.data.clock||JSON.stringify(event.data.ids)}`:null};apply();
     };
     window.addEventListener('message',receive);
     return()=>window.removeEventListener('message',receive);
@@ -53,7 +57,8 @@ export function AtlasSelectionTools(props:Props) {
     if(expected.current===key){expected.current=null;return;}
     if(lastSelection.current===key)return;
     lastSelection.current=key;
-    parent.postMessage({type:'atlas:selection-changed',ids:gallerySelection(props.elements,props.selectedIds,catalog.current)},location.origin);
+    const ids=gallerySelection(props.elements,props.selectedIds,catalog.current);
+    parent.postMessage({type:'atlas:selection-changed',ids,focusId:ids.at(-1)},location.origin);
   },[key,props.ready,props.suspended,props.activeBoardId]);
   useEffect(()=>{
     let cancelled=false;

@@ -21,6 +21,7 @@
     switcher.querySelector('.workspace-brand > img').src=board?'/assets/doro/board-icon.png':'/assets/app-icon.png?v=blue-portrait';
     if(board){flush();if(frameReady)frame.contentWindow.postMessage({type:'atlas:sync-catalog'},location.origin);}
     window.atlasWorkspaceChanged?.(mode);
+    window.dispatchEvent(new Event('atlas:workspace-shown'));
   }
   document.getElementById('galleryTab').onclick=()=>show('gallery');document.getElementById('boardTab').onclick=()=>show('board');
   const trigger=document.getElementById('workspaceTrigger'),menu=document.getElementById('workspaceMenu');

@@ -5,10 +5,29 @@
   if(!params.get('owner'))sessionStorage.setItem('atlas-window-session',token);
   const self=crypto.randomUUID(),channel=new BroadcastChannel('atlas-selection-'+token);
   let applying=false,lastGallery='[]',latest=null,clock=0,transferring=0;
+  let pendingReveal=null,lastRevealed=null;
   const catalog=()=>state.images.map(({id,contentHash})=>({id,contentHash}));
+  const owns=tool=>window.atlasOwnsWorkspace?.(tool)??true;
+  const messageKey=message=>`${message.author||''}:${message.clock||JSON.stringify(message.ids)}`;
+  function revealGallery(){
+    if(!pendingReveal||transferring||!owns('gallery')||document.body.classList.contains('board-active'))return;
+    const area=document.querySelector('.gallery-area');
+    if(!area||area.clientHeight<=0)return;
+    const message=pendingReveal;pendingReveal=null;
+    if(messageKey(message)===lastRevealed)return;
+    const id=message.ids.includes(message.focusId)?message.focusId:message.ids.at(-1);
+    if(!id)return;
+    const card=[...document.querySelectorAll('.image-card')].find(card=>card.dataset.id===id);
+    lastRevealed=messageKey(message);
+    if(!card){toast('对应图片不在当前筛选结果中，请在所有图片中查看');return;}
+    const bounds=card.getBoundingClientRect(),viewport=area.getBoundingClientRect();
+    if(bounds.top>=viewport.top&&bounds.bottom<=viewport.bottom&&bounds.left>=viewport.left&&bounds.right<=viewport.right)return;
+    // Scroll only the gallery, never the outer workspace or the originating window.
+    area.scrollTo({top:Math.max(0,area.scrollTop+bounds.top-viewport.top-(area.clientHeight-bounds.height)/2),behavior:'instant'});
+  }
   function toBoard(message){
     const workspace=window.atlasWorkspace;
-    if(workspace?.isFrameReady())workspace.getFrame().contentWindow.postMessage({...message,type:'atlas:selection-apply',catalog:catalog()},location.origin);
+    if(workspace?.isFrameReady())workspace.getFrame().contentWindow.postMessage({...message,type:'atlas:selection-apply',reveal:message.source==='gallery'&&owns('board'),catalog:catalog()},location.origin);
   }
   function apply(message,{board=true}={}){
     latest=message;
@@ -24,8 +43,9 @@
       }finally{applying=false;}
     }
     if(board&&!transferring)toBoard(message);
+    pendingReveal=message.source==='board'&&message.ids.length?message:null;
+    if(pendingReveal)requestAnimationFrame(revealGallery);
   }
-  const owns=tool=>window.atlasOwnsWorkspace?.(tool)??true;
   const replay=()=>{if(latest)apply(latest);};
   window.atlasSelectionTransfer=active=>{transferring=Math.max(0,transferring+(active?1:-1));if(!transferring)replay();};
   function publish(message){
@@ -38,7 +58,7 @@
     const ids=state.view==='trash'?[]:[...state.selectedIds];
     const key=JSON.stringify([...ids].sort());
     if(applying||transferring||!owns('gallery')||key===lastGallery)return;
-    lastGallery=key;publish({source:'gallery',ids});
+    lastGallery=key;publish({source:'gallery',ids,focusId:state.selectedId});
   };
   channel.onmessage=({data})=>{
     if(data.from===self)return;
@@ -58,12 +78,16 @@
     if(['atlas:ready','atlas:hydrated','atlas:selection-request'].includes(data?.type)){
       toBoard(latest||{source:'gallery',ids:state.selectedIds});
     }
-    if(data?.type==='atlas:selection-changed'&&!transferring&&owns('board')&&Array.isArray(data.ids))publish({source:'board',ids:data.ids});
+    if(data?.type==='atlas:selection-changed'&&!transferring&&owns('board')&&Array.isArray(data.ids))publish({source:'board',ids:data.ids,focusId:data.focusId});
     if(data?.type==='atlas:drag-out'){
       const invoke=window.__TAURI__?.core?.invoke||window.__TAURI_INTERNALS__?.invoke;
       if(invoke)invoke('drag_images_out',{ids:data.ids,boardFiles:data.boardFiles}).catch(error=>toast('拖出失败：'+error));
       else toast('当前为浏览器预览，可先另存为图片；Windows 原生拖出需要桌面预览');
     }
+  });
+  window.addEventListener('atlas:workspace-shown',()=>{
+    requestAnimationFrame(revealGallery);
+    if(latest&&window.atlasWorkspace?.getMode()==='board')toBoard(latest);
   });
   document.addEventListener('keydown',event=>{
     if(event.key!=='Escape'||document.body.classList.contains('board-active')||event.target.closest('input,textarea,[contenteditable=true]')||!state.selectedIds.length)return;

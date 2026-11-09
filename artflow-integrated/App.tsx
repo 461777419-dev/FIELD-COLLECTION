@@ -1,4 +1,5 @@
 import { AtlasBoard } from './components/AtlasBoard';
+import { linkedSelectionViewport } from './utils/atlas-selection';
 import { saveAtlasDocument } from './utils/atlas-document';
 import './doro-theme.css';
 import { provideLiveService } from './plugin-runtime/live-service';
@@ -612,6 +613,20 @@ const App: React.FC = () => {
             zoomToBounds(bounds, { animated: false, minZoom: 0.02 });
         }
     }, [elements, zoomToBounds]);
+
+    const handleRevealLinkedSelection = useCallback((ids: string[]) => {
+        const size = getCanvasScreenRect(svgRef.current);
+        // Hidden workspaces are replayed when shown; never fit against a zero-sized canvas.
+        if (!size || size.width <= 100 || size.height <= 100) return false;
+        const visibleIds = ids.filter(id => elements.some(element => element.id === id && element.isVisible !== false));
+        if (!visibleIds.length) return true;
+        const target = linkedSelectionViewport(getSelectionBounds(visibleIds, elements), canvasViewportStore.getLive(), size);
+        if (target) {
+            canvasViewportStore.setTransient(target);
+            canvasViewportStore.endInteraction();
+        }
+        return true;
+    }, [elements, canvasViewportStore]);
 
     const handleFocusSelection = useCallback(() => {
         if (selectedElementIds.length > 0) {
@@ -1786,7 +1801,7 @@ const App: React.FC = () => {
             onDrop={handleDrop}
             onMouseMove={(e) => { mousePosRef.current = { x: e.clientX, y: e.clientY }; }}
         >
-            <AtlasBoard onGrayscale={()=>{setViewDesaturate(false);const ids=new Set(selectedElementIds);const targets=elements.filter(element=>!element.isLocked&&(!ids.size||ids.has(element.id)));if(!targets.length)return;const gray=!targets.every(element=>element.grayscale);const targetIds=new Set(targets.map(element=>element.id));commitAction(previous=>previous.map(element=>targetIds.has(element.id)?{...element,grayscale:gray}:element));}} selectedIds={selectedElementIds} setSelectedIds={setSelectedElementIds} savedBaseline={projectChangeStateRef.current.baseline} onHydrated={(incoming,dirty,baseline)=>{pendingProjectLoadBaselineRef.current=!dirty;syncProjectChangeState({baseline:dirty?baseline:incoming,isDirty:dirty});setHasProjectSaveBaseline(true);}} dirty={hasUnsavedChanges} boards={boards} activeBoardId={activeBoardId} elements={elements} setBoards={setBoards} setActiveBoardId={setActiveBoardId} addElements={addElementsWithParenting} onSave={handleSaveProjectClick} viewportStore={canvasViewportStore} onRestored={()=>{pendingProjectLoadBaselineRef.current=true;setHasProjectSaveBaseline(true);}} onOpenSettings={()=>{setIsSettingsPanelOpen(true);}} />
+            <AtlasBoard onRevealSelection={handleRevealLinkedSelection} onGrayscale={()=>{setViewDesaturate(false);const ids=new Set(selectedElementIds);const targets=elements.filter(element=>!element.isLocked&&(!ids.size||ids.has(element.id)));if(!targets.length)return;const gray=!targets.every(element=>element.grayscale);const targetIds=new Set(targets.map(element=>element.id));commitAction(previous=>previous.map(element=>targetIds.has(element.id)?{...element,grayscale:gray}:element));}} selectedIds={selectedElementIds} setSelectedIds={setSelectedElementIds} savedBaseline={projectChangeStateRef.current.baseline} onHydrated={(incoming,dirty,baseline)=>{pendingProjectLoadBaselineRef.current=!dirty;syncProjectChangeState({baseline:dirty?baseline:incoming,isDirty:dirty});setHasProjectSaveBaseline(true);}} dirty={hasUnsavedChanges} boards={boards} activeBoardId={activeBoardId} elements={elements} setBoards={setBoards} setActiveBoardId={setActiveBoardId} addElements={addElementsWithParenting} onSave={handleSaveProjectClick} viewportStore={canvasViewportStore} onRestored={()=>{pendingProjectLoadBaselineRef.current=true;setHasProjectSaveBaseline(true);}} onOpenSettings={()=>{setIsSettingsPanelOpen(true);}} />
             <WorkspaceWallpaper active={wallpaperEligible} />
             <WorkspaceWallpaperSwitch active={wallpaperEligible} />
             {windowPlatform?.isFramelessWindow && <WindowChrome platform={windowPlatform} />}

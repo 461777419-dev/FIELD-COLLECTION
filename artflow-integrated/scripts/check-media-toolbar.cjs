@@ -3,7 +3,7 @@ require('./register-typescript.cjs');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { ElementToolbar } = require('../components/ElementToolbar.tsx');
-const { ToolbarOverlay } = require('../components/ToolbarOverlay.tsx');
+const { ToolbarOverlay,placeMediaToolbar } = require('../components/ToolbarOverlay.tsx');
 let called = '';
 const props = { zoom: 1, t: key => key, handleCopyElement: () => called = 'copy', handleDownloadImage: () => called = 'download', handleStartCrop: () => called = 'crop', handleDeleteElement: () => called = 'delete', handlePropertyChange: () => {}, handleFrameAspectRatioChange: () => {}, handleUngroup: () => {}, handleMergeGroup: () => {} };
 const walk = (node, result = []) => { if (!React.isValidElement(node)) return result; result.push(node); React.Children.forEach(node.props.children, child => walk(child, result)); return result; };
@@ -24,9 +24,19 @@ for (const type of ['image', 'video', 'audio']) {
   for (const zoom of [0.1, 1, 3]) {
     const overlay = ToolbarOverlay({ ...props, zoom, elements: [element], selectedElementIds: [element.id], singleSelectedElement: element });
     assert.equal(overlay.type, 'foreignObject');
-    assert.ok(overlay.props.x >= element.x && overlay.props.y >= element.y);
-    assert.ok(overlay.props.x + overlay.props.width <= element.x + element.width);
-    assert.ok(overlay.props.y + overlay.props.height <= element.y + element.height);
+    assert.ok(overlay.props.y + overlay.props.height <= element.y || overlay.props.y >= element.y+element.height,'toolbar stays outside the image');
+    assert.equal(overlay.props.height*zoom,40,'toolbar keeps its screen size');
   }
 }
-console.log('media-toolbar: inside-media placement, zoom, actions and event isolation passed');
+for(const zoom of [0.1,1,3]){
+  const viewport={width:800,height:600},pan={x:80,y:100};
+  for(const top of [4,180]){
+    const bounds={x:10,y:(top-pan.y)/zoom,width:30,height:40};
+    const placed=placeMediaToolbar(bounds,zoom,pan,viewport,192,40);
+    const screenX=placed.x*zoom+pan.x,screenY=placed.y*zoom+pan.y;
+    assert.ok(screenX>=8&&screenX+192<=792,'horizontal viewport edges');
+    if(top===4)assert.ok(screenY>=(bounds.y+bounds.height)*zoom+pan.y+12,'top-edge fallback goes below');
+    else assert.ok(screenY+40<=top-36,'rotation handle has its own space');
+  }
+}
+console.log('media-toolbar: outside-image placement, top-edge fallback, zoom, actions and event isolation passed');

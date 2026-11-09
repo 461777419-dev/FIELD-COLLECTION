@@ -659,6 +659,8 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
         const bridge = toolbarKernel.use(WORKSPACE_UI_BRIDGE_SERVICE) as WorkspaceUiBridgeService;
         bridge.current.selectionOverlay = {
             zoom: viewportZoom,
+            panOffset: viewportPan,
+            viewportSize: canvasSize,
             selectedElementIds,
             elements: presentElements,
             singleSelectedElement,
