@@ -4,7 +4,7 @@
 `Field-Collection_1.0.4_x64-setup.exe`。
 
 安装包 SHA256：
-`0be1639a03e02f8ee8050da050031ba6368c32dd4ce7ed4f3f37d6f173cbac41`。
+`1a9c13f87fb8b4e537c8735b95731c8929ea458fc641b30db6de29f96cf707b8`。
 
 ## 目录
 

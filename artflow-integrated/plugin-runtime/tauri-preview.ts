@@ -95,6 +95,19 @@ const createPluginStateBridge = (storage: Storage | null) => ({
 });
 
 export function installTauriPreviewBridge(target: Window = window): boolean {
+  if (target.artflowApp) return false;
+  // 图集只实现自己的桌面命令，不能复用独立 Artflow 的存储、窗口或沙箱接口。
+  // 必须在探测 Tauri 之前分流，避免遗留 artflowStorage 令打开工程误走原生 IPC。
+  if (target.location?.pathname.startsWith('/board/')) {
+    const storage = (() => {
+      try { return target.localStorage ?? null; } catch { return null; }
+    })();
+    target.artflowPluginState = createPluginStateBridge(storage) as NonNullable<Window['artflowPluginState']>;
+    target.artflowApp = {
+      readEditablePlugins: async () => ({plugins:BUNDLED_EDITABLE_PLUGINS.map(entry=>({id:entry.manifest.id,name:entry.manifest.name,version:entry.manifest.version,manifest:entry.manifest,source:entry.source}))}),
+    } as unknown as NonNullable<Window['artflowApp']>;
+    return true;
+  }
   const tauri = (target as unknown as {
     __TAURI__?: {
       core?: { invoke?: Invoke };
@@ -102,7 +115,7 @@ export function installTauriPreviewBridge(target: Window = window): boolean {
     };
   }).__TAURI__;
   const invoke = tauri?.core?.invoke;
-  if (!invoke || target.artflowApp) return false;
+  if (!invoke) return false;
   const listen = tauri?.event?.listen;
   const storage = (() => {
     try {
@@ -329,11 +342,3 @@ export function installTauriPreviewBridge(target: Window = window): boolean {
 }
 
 if (typeof window !== 'undefined') installTauriPreviewBridge();
-
-// 图集集成预览只加载随源码提供的受信任内置插件；不声明原生窗口或文件系统能力。
-if (typeof window !== 'undefined' && location.pathname.startsWith('/board/')) {
-  window.artflowPluginState = createPluginStateBridge(localStorage) as NonNullable<Window['artflowPluginState']>;
-  window.artflowApp = {
-    readEditablePlugins: async () => ({plugins:BUNDLED_EDITABLE_PLUGINS.map(entry=>({id:entry.manifest.id,name:entry.manifest.name,version:entry.manifest.version,manifest:entry.manifest,source:entry.source}))}),
-  } as unknown as NonNullable<Window['artflowApp']>;
-}

@@ -14,6 +14,21 @@ const createStorage = () => {
 };
 (async () => {
   assert.equal(installTauriPreviewBridge({}), false);
+  // 图集浏览器预览、主窗口与独立画板都只拥有内置插件，不误声明独立版原生能力。
+  for (const desktop of [false, true]) {
+    const integrated = {location:{pathname:'/board/'},localStorage:createStorage(),
+      ...(desktop ? {__TAURI__:{core:{invoke:async()=>{throw Error('Integrated board must not invoke standalone commands');}}}} : {})};
+    assert.equal(installTauriPreviewBridge(integrated), true);
+    assert.equal(installTauriPreviewBridge(integrated), false);
+    assert.equal(integrated.artflowStorage, undefined, 'project opening must use the existing file picker fallback');
+    assert.equal(integrated.artflowAi, undefined);
+    assert.equal(integrated.artflowComic, undefined);
+    assert.equal(integrated.artflowApp.openPanelWindow, undefined);
+    assert.equal(integrated.artflowApp.isFramelessWindow, undefined);
+    assert.equal(typeof integrated.artflowPluginState.readSync, 'function');
+    const plugins=await integrated.artflowApp.readEditablePlugins();
+    assert.ok(plugins.plugins.some(plugin=>plugin.id==='builtin.project-portable'));
+  }
   const calls = [];
   let perfReply = { ok: true, metrics: [{ type: 'Renderer', pid: 111, cpuPercent: 5.5, workingSetKB: 1024, peakWorkingSetKB: 0 }] };
   let comicImportReply = { ok: true, ref: 'abc123', pageNames: ['001.png'], pageCount: 1, byteSize: 9, originalName: 'book.cbz' };
