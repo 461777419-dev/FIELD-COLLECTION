@@ -38,3 +38,9 @@ export const normalizeWheelDelta = (delta: number, deltaMode: number): number =>
  */
 export const resolveWheelZoomFactor = (deltaY: number): number =>
   Math.exp(-deltaY * Math.log(WHEEL_ZOOM_RATIO_PER_NOTCH) / WHEEL_NOTCH_DELTA_PX);
+
+/** No image-size or fixed magnification cap; reject only unrepresentable numbers. */
+export function resolveWheelZoom(current:number,deltaY:number):number {
+  const next=current*resolveWheelZoomFactor(deltaY);
+  return Number.isFinite(next)?Math.max(0.02,next):current;
+}

@@ -1,4 +1,5 @@
 import { AtlasBoard } from './components/AtlasBoard';
+import {moveImagesBetweenBoards,movableBoardImages} from './utils/board-image-transfer';
 import { linkedSelectionViewport } from './utils/atlas-selection';
 import { saveAtlasDocument } from './utils/atlas-document';
 import './doro-theme.css';
@@ -613,6 +614,19 @@ const App: React.FC = () => {
             zoomToBounds(bounds, { animated: false, minZoom: 0.02 });
         }
     }, [elements, zoomToBounds]);
+
+    const handleMoveImagesToBoard = (targetId:string,ids:string[]) => {
+        const target=boards.find(board=>board.id===targetId);
+        if(!target||isDocumentInteractionPending())return;
+        const size=getCanvasScreenRect(svgRef.current);
+        const center={x:((size?.width??innerWidth)/2-target.panOffset.x)/target.zoom,y:((size?.height??innerHeight)/2-target.panOffset.y)/target.zoom};
+        const next=moveImagesBetweenBoards(boards,activeBoardId,targetId,ids,center);
+        if(next===boards)return;
+        const moved=new Set(movableBoardImages(elements,ids).map(image=>image.id));
+        setBoards(next);
+        setSelectedElementIds(previous=>previous.filter(id=>!moved.has(id)));
+        setLastWorkspaceActivity({tone:'success',message:`已移动 ${moved.size} 张图片到「${target.name}」，Ctrl+Z 可撤销`});
+    };
 
     const handleRevealLinkedSelection = useCallback((ids: string[]) => {
         const size = getCanvasScreenRect(svgRef.current);
@@ -1953,6 +1967,8 @@ const App: React.FC = () => {
                     elementId={contextMenu.elementId}
                     elements={elements}
                     selectedElementIds={selectedElementIds}
+                    moveTargets={boards.filter(board=>board.id!==activeBoardId)}
+                    onMoveImages={handleMoveImagesToBoard}
                     actions={{
                         layerAction: handleLayerAction,
                         group: handleGroup,

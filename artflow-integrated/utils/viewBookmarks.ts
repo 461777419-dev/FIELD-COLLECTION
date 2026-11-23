@@ -3,7 +3,7 @@ import type { CanvasViewBookmark, Point } from '../types';
 export const MAX_VIEW_BOOKMARKS = 12;
 export const VIEW_BOOKMARK_NAME_MAX_LENGTH = 48;
 export const VIEW_BOOKMARK_MIN_ZOOM = 0.02;
-export const VIEW_BOOKMARK_MAX_ZOOM = 10;
+export const VIEW_BOOKMARK_MAX_ZOOM = Number.POSITIVE_INFINITY;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

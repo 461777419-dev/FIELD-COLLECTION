@@ -15,6 +15,7 @@ const {
   WHEEL_ZOOM_RATIO_PER_NOTCH,
   normalizeWheelDelta,
   resolveWheelZoomFactor,
+  resolveWheelZoom,
 } = require('../utils/wheel-input.ts');
 const { createCanvasViewportStore } = require('../utils/viewport-store.ts');
 
@@ -33,6 +34,12 @@ const readCode = relative => stripComments(readSource(relative));
 const close = (a, b, tolerance = 1e-9) => Math.abs(a - b) <= tolerance;
 
 const runInputChecks = () => {
+  assert.equal(resolveWheelZoom(10,-100),12.5,'超过原 10 倍上限后仍可放大');
+  assert.equal(resolveWheelZoom(1000,-100),1250,'高倍缩放也不能被按图片原尺寸截断');
+  assert.equal(resolveWheelZoom(0.02,100),0.02,'保留缩小下限');
+  assert.equal(resolveWheelZoom(10,-Infinity),10,'拒绝溢出相机数值');
+  const {clampViewBookmarkZoom}=require('../utils/viewBookmarks.ts');
+  assert.equal(clampViewBookmarkZoom(1250),1250,'保存和恢复视角不得重新截回 10 倍');
   // 一格向上 = 放大 25%（原实现是 5%，这是"要滚 4~6 次"的直接原因）。
   assert.equal(WHEEL_NOTCH_DELTA_PX, 100);
   assert.ok(close(resolveWheelZoomFactor(-WHEEL_NOTCH_DELTA_PX), WHEEL_ZOOM_RATIO_PER_NOTCH));
@@ -186,7 +193,7 @@ const runSourceGuards = () => {
   );
   assert.match(
     interactionCode,
-    /Math\.min\(zoomBase\.zoom \* resolveWheelZoomFactor\(pending\.deltaY\), MAX_CANVAS_ZOOM\)/,
+    /resolveWheelZoom\(zoomBase\.zoom,\s*pending\.deltaY\)/,
     '缩放算式必须使用抽出来的换算函数',
   );
 

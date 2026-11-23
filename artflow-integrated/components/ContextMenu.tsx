@@ -1,6 +1,7 @@
 
 import React, {useEffect,useRef} from 'react';
-import type { Element } from '../types';
+import type { Board, Element } from '../types';
+import {movableBoardImages} from '../utils/board-image-transfer';
 import type { Kernel } from '../plugin-runtime/kernel';
 import { listContextMenuContributions, type ContextMenuContext, type ContextMenuItem } from '../plugin-runtime/menu-contributions';
 import { PluginErrorBoundary, reportPluginFailure } from '../plugin-runtime/plugin-error-boundary';
@@ -18,6 +19,8 @@ interface ContextMenuProps {
     elements: Element[];
     selectedElementIds: string[];
     actions: ContextMenuContext['actions'];
+    moveTargets?:Pick<Board,'id'|'name'>[];
+    onMoveImages?:(targetId:string,ids:string[])=>void;
     onClose: () => void;
 }
 
@@ -32,6 +35,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     elements,
     selectedElementIds,
     actions,
+    moveTargets=[],
+    onMoveImages,
     onClose,
 }) => {
     const menuRef=useRef<HTMLDivElement>(null);
@@ -47,6 +52,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     const element = elementId ? elements.find(el => el.id === elementId) : null;
     const selectedElements = elements.filter(el => selectedElementIds.includes(el.id));
     const isMultiSelection = selectedElementIds.length > 1;
+    const moveIds=movableBoardImages(elements,elementId&&!selectedElementIds.includes(elementId)?[elementId]:selectedElementIds).map(image=>image.id);
 
     const ctx: ContextMenuContext = { element, selectedElements, isMultiSelection, actions };
 
@@ -65,7 +71,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             return b.entry.priority - a.entry.priority;
         });
 
-    if (visibleItems.length === 0) return null;
+    if (visibleItems.length === 0 && !moveIds.length) return null;
 
     // 菜单项的 label() 是插件函数（render 期调用）、run() 也是（点击时调用）——错误边界抓不到事件回调，
     // 所以这两个调用各自 try/catch：抛错只影响这一条菜单项，不连累整张菜单，更不冒泡到根边界整页报错。
@@ -94,6 +100,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => e.stopPropagation()}
         >
+            {onMoveImages&&moveIds.length>0&&<details>
+                <summary role="menuitem" className="w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-md cursor-pointer list-none" aria-label="移动到其他画板">
+                    {language==='zho'?'移动到其他画板…':'Move to another board…'}
+                </summary>
+                <div role="group" aria-label="目标画板" className="max-h-48 overflow-y-auto pl-3">
+                    {moveTargets.length?moveTargets.map(board=><button key={board.id} role="menuitem" className="block w-full text-left px-3 py-1.5 hover:bg-white/10 rounded-md" onClick={()=>{onMoveImages(board.id,moveIds);onClose();}}>{board.name}</button>):<span className="block px-3 py-1.5 opacity-60">{language==='zho'?'暂无其他画板':'No other boards'}</span>}
+                </div>
+            </details>}
             {visibleItems.map(({ entry, item }) => {
                 const showDivider = lastGroup !== null && lastGroup !== item.group;
                 lastGroup = item.group;

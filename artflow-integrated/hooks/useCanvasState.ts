@@ -4,13 +4,13 @@ import { DEFAULT_CANVAS_BACKGROUND } from '../plugin-runtime/ui-theme-settings';
 import type { Board, Element, FrameElement } from '../types';
 import { createNewBoard, getElementBounds } from '../utils/canvasUtils';
 import {
-    applyCanvasOperation,
     commitCanvasOperation,
     commitGroupedCanvasOperation,
     migrateLegacyBoardHistory,
     type CanvasOperationGroup,
 } from '../utils/operationHistory';
 import { deserializeProjectDocument } from '../utils/projectDocument';
+import {canReplayBoardOperation,replayBoardOperation} from '../utils/board-image-transfer';
 
 type ElementUpdate = Element[] | ((prev: Element[]) => Element[]);
 
@@ -117,31 +117,20 @@ export const useCanvasState = () => {
     }, []);
 
     const handleUndo = useCallback(() => {
-        updateActiveBoard(board => {
-            const index = Math.max(-1, Math.min(board.operationHistoryIndex, board.operationHistory.length - 1));
-            if (index < 0) return board;
-            pendingBaseElementsRef.current.delete(board.id);
-            return {
-                ...board,
-                elements: applyCanvasOperation(board.elements, board.operationHistory[index], 'undo'),
-                operationHistoryIndex: index - 1,
-            };
+        setBoards(previous=>{
+            const next=replayBoardOperation(previous,activeBoardId,'undo');
+            next.forEach((board,index)=>{if(board!==previous[index])pendingBaseElementsRef.current.delete(board.id);});
+            return next;
         });
-    }, [updateActiveBoard]);
+    }, [activeBoardId,setBoards]);
 
     const handleRedo = useCallback(() => {
-        updateActiveBoard(board => {
-            const index = Math.max(-1, Math.min(board.operationHistoryIndex, board.operationHistory.length - 1));
-            const nextIndex = index + 1;
-            if (nextIndex >= board.operationHistory.length) return board;
-            pendingBaseElementsRef.current.delete(board.id);
-            return {
-                ...board,
-                elements: applyCanvasOperation(board.elements, board.operationHistory[nextIndex], 'redo'),
-                operationHistoryIndex: nextIndex,
-            };
+        setBoards(previous=>{
+            const next=replayBoardOperation(previous,activeBoardId,'redo');
+            next.forEach((board,index)=>{if(board!==previous[index])pendingBaseElementsRef.current.delete(board.id);});
+            return next;
         });
-    }, [updateActiveBoard]);
+    }, [activeBoardId,setBoards]);
 
     /** Legacy Board[] and Project Document v2 are both accepted at the renderer ingress. */
     const loadBoardData = useCallback((serializedProject: unknown): boolean => {
@@ -153,8 +142,8 @@ export const useCanvasState = () => {
         return true;
     }, [documentState]);
 
-    const canUndo = operationHistoryIndex >= 0;
-    const canRedo = operationHistoryIndex < operationHistory.length - 1;
+    const canUndo = canReplayBoardOperation(boards,activeBoardId,'undo');
+    const canRedo = canReplayBoardOperation(boards,activeBoardId,'redo');
 
     return {
         documentState,

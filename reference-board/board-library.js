@@ -178,11 +178,35 @@ exports.createBoardLibrary=({state,save,dataDir,boardDir,mediaDir,folderDiskPath
     }
     const links=catalog(body.boards),incoming=JSON.parse(JSON.stringify(body.boards));
     const deleted=new Map(),restore=[];
+    const movedElements=new Set();
+    // The same element ID on another board is a move, not a gallery deletion.
+    // Update folder membership before candidates are re-imported into each board.
+    for(const board of incoming){
+      const sourceLink=links.find(link=>link.boardId===board.id);
+      const previous=sourceLink?.mediaSnapshot||(old.boards||[]).find(item=>item.id===board.id)?.elements||[];
+      for(const element of previous){
+        const id=mediaId(element);
+        if(!id||board.elements.some(item=>item.id===element.id))continue;
+        const target=incoming.find(item=>item.id!==board.id&&item.elements.some(candidate=>candidate.id===element.id&&mediaId(candidate)===id));
+        const targetLink=target&&links.find(link=>link.boardId===target.id);
+        const image=state.images.find(image=>image.id===id);
+        if(!targetLink||!sourceLink||!image)continue;
+        movedElements.add(element.id);
+        const stillInSource=board.elements.some(item=>mediaId(item)===id);
+        const sourceFolder=state.folders.find(folder=>folder.id===sourceLink.folderId);
+        const targetFolder=state.folders.find(folder=>folder.id===targetLink.folderId);
+        if(!stillInSource){
+          if(sourceFolder)sourceFolder.referenceIds=(sourceFolder.referenceIds||[]).filter(item=>item!==id);
+          if(image.folderId===sourceLink.folderId)image.folderId=targetLink.folderId;
+        }
+        if(targetFolder&&image.folderId!==targetLink.folderId)targetFolder.referenceIds=[...new Set([...(targetFolder.referenceIds||[]),id])];
+      }
+    }
     for(const board of incoming){
       const link=state.boardLinks.find(link=>link.boardId===board.id&&!link.archived);if(!link)continue;
       const previous=link.mediaSnapshot||(old.boards||[]).find(item=>item.id===board.id)?.elements||[];
       const currentIds=new Set(board.elements.map(mediaId).filter(Boolean));
-      for(const element of previous){const id=mediaId(element);if(id&&!currentIds.has(id)&&state.images.some(image=>image.id===id)){deleted.set(id,board.id);restore.push({boardId:board.id,element});}}
+      for(const element of previous){const id=mediaId(element);if(id&&!movedElements.has(element.id)&&!currentIds.has(id)&&state.images.some(image=>image.id===id)){deleted.set(id,board.id);restore.push({boardId:board.id,element});}}
     }
     const affected=[...deleted].flatMap(([id,source])=>references(id,old.boards||[]).filter(board=>board.id!==source).map(board=>({...board,imageId:id})));
     if(affected.some(item=>!body.confirmedDeleteIds?.includes(item.imageId)))return {needsConfirmation:true,affected,deleteIds:[...deleted.keys()],restore};

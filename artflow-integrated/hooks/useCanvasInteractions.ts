@@ -31,12 +31,10 @@ import {
 } from '../utils/marquee-selection';
 import type { SelectionModifiers } from '../utils/marquee-selection';
 import { applyDragCommit } from '../utils/drag-commit';
-import { normalizeWheelDelta, resolveWheelZoomFactor } from '../utils/wheel-input';
+import { normalizeWheelDelta, resolveWheelZoom } from '../utils/wheel-input';
 
 /** 滚轮手势静默多久算结束（结束后提交一次相机到文档状态）。 */
 const WHEEL_GESTURE_IDLE_MS = 200;
-const MIN_CANVAS_ZOOM = 0.02;
-const MAX_CANVAS_ZOOM = 10;
 
 interface PointerMoveSnapshot {
     clientX: number;
@@ -1661,10 +1659,7 @@ export const useCanvasInteractions = ({
             // 缩放必须基于"平滑目标"而不是 live 累积：追随期间 live 只走了一部分，
             // 拿它当基准会让滚得越快、每格增量越小（越滚越黏）。
             const zoomBase = viewportStore ? viewportStore.getTarget() : liveBase;
-            const nextZoom = Math.max(
-                MIN_CANVAS_ZOOM,
-                Math.min(zoomBase.zoom * resolveWheelZoomFactor(pending.deltaY), MAX_CANVAS_ZOOM),
-            );
+            const nextZoom = resolveWheelZoom(zoomBase.zoom,pending.deltaY);
             const mouseX = pending.clientX - cachedRect.left;
             const mouseY = pending.clientY - cachedRect.top;
             // Pan to keep the point under mouse stable
@@ -1672,6 +1667,7 @@ export const useCanvasInteractions = ({
                 x: mouseX - (mouseX - zoomBase.panOffset.x) * (nextZoom / zoomBase.zoom),
                 y: mouseY - (mouseY - zoomBase.panOffset.y) * (nextZoom / zoomBase.zoom),
             };
+            if(!Number.isFinite(nextPan.x)||!Number.isFinite(nextPan.y))return;
             if (viewportStore) {
                 // 走平滑通道：离散的滚轮事件 → 每帧逼近的连续运动（PureRef 式手感）。
                 viewportStore.setSmoothTarget({ zoom: nextZoom, panOffset: nextPan });

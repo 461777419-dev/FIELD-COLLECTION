@@ -38,6 +38,27 @@ test('素材自动双向同步：初次平铺、保留布局、去重、共享�
     const library=await api('/api/state'),added=library.images.find(image=>image.id===board.elements.find(element=>element.id==='dragged').atlasImageId);
     assert.ok(added);assert.equal(added.folderId,folder.id,'拖进画板的素材自动入对应图库文件夹');
     assert.equal(fs.statSync(path.join(dir,'board','media',path.basename(media.url))).ino,fs.statSync(path.join(dir,'media',added.storagePath)).ino,'没有额外一份原图');
+    // A move keeps the element ID and must not trigger deletion or re-import at source.
+    const transferTarget={...board,id:'transfer-board',name:'移动测试',elements:[]};
+    result=await sync([board,transferTarget]);
+    const sourceBefore=result.boards.find(item=>item.id===board.id),targetBefore=result.boards.find(item=>item.id===transferTarget.id);
+    const moving=sourceBefore.elements.find(element=>element.id==='dragged');
+    const trashCount=(await api('/api/state')).trash.length;
+    const movedBoards=[{...sourceBefore,elements:sourceBefore.elements.filter(element=>element.id!==moving.id)},{...targetBefore,elements:[{...moving,x:700,y:500}]}];
+    for(let repeat=0;repeat<2;repeat++){
+      result=await sync(repeat?result.boards:movedBoards);
+      assert.ok(!result.needsConfirmation);
+      assert.ok(!result.boards.find(item=>item.id===board.id).elements.some(element=>element.id===moving.id),'移动后不从原文件夹补回');
+      assert.equal(result.boards.find(item=>item.id===transferTarget.id).elements.find(element=>element.id===moving.id).x,700);
+      const state=await api('/api/state');assert.equal(state.trash.length,trashCount);
+      assert.equal(state.images.find(image=>image.id===moving.atlasImageId).folderId,result.links.find(link=>link.boardId===transferTarget.id).folderId);
+    }
+    // Undo transfers the same image back and restores its source folder membership.
+    result=await sync([sourceBefore,targetBefore]);
+    assert.ok(result.boards.find(item=>item.id===board.id).elements.some(element=>element.id===moving.id));
+    assert.equal(result.boards.find(item=>item.id===transferTarget.id).elements.length,0);
+    result=await api('/api/board/sync','POST',{boards:[result.boards.find(item=>item.id===board.id)],deletedBoardIds:[transferTarget.id]});
+    board=result.boards[0];
     const other={...board,id:'other-board',name:'第二画板',elements:[{...board.elements[0],id:'other-reference'}]};
     result=await sync([board,other]);board=result.boards.find(item=>item.id===board.id);
     const target=board.elements[0],targetId=target.atlasImageId;
