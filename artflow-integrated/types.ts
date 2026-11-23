@@ -123,6 +123,9 @@ export interface GroupElement extends CanvasElementBase {
     width: number;
     height: number;
     rotation?: number; // degrees
+    groupColor?: string;
+    groupNote?: string;
+    groupNoteCollapsed?: boolean;
 }
 
 export interface MarkdownElement extends CanvasElementBase {

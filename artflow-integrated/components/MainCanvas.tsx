@@ -719,7 +719,11 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
                 >
                     {/* PureRef 对齐 ⑤：一键去色（整层滤镜，仅内容层不含选择手柄） */}
                     <g style={viewDesaturate ? { filter: 'grayscale(1)' } : undefined}>
-                    {visiblePresentElements.map(el => {
+                    {[...visiblePresentElements.filter(el=>el.type==='group').sort((a,b)=>{
+                        // Parent frames go behind nested frames; media always stays above both.
+                        const depth=(element:Element)=>{let count=0,parent=element.parentId;const seen=new Set<string>();while(parent&&!seen.has(parent)){seen.add(parent);count++;parent=presentElements.find(item=>item.id===parent)?.parentId;}return count;};
+                        return depth(a)-depth(b);
+                    }),...visiblePresentElements.filter(el=>el.type!=='group')].map(el => {
                             // PureRef 对齐 ⑤：暗化非选中（仅在有选区时生效）
                             const dimmed = viewDimUnselected
                                 && selectedElementIds.length > 0

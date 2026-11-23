@@ -588,6 +588,7 @@ export const useElementActions = ({
             if (el.id === editingElement.id) {
                 if (el.type === 'text') return { ...el, text: editingElement.text };
                 if (el.type === 'frame') return { ...el, name: editingElement.text || 'Frame' };
+                if (el.type === 'group') {const name=editingElement.text.trim()||el.name||'编组';return name===el.name?el:{...el,name};}
             }
             return el;
         }));

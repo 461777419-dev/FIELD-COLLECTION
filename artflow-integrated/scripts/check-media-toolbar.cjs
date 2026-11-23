@@ -25,7 +25,7 @@ for (const type of ['image', 'video', 'audio']) {
     const overlay = ToolbarOverlay({ ...props, zoom, elements: [element], selectedElementIds: [element.id], singleSelectedElement: element });
     assert.equal(overlay.type, 'foreignObject');
     assert.ok(overlay.props.y + overlay.props.height <= element.y || overlay.props.y >= element.y+element.height,'toolbar stays outside the image');
-    assert.equal(overlay.props.height*zoom,40,'toolbar keeps its screen size');
+    assert.equal(overlay.props.height*zoom,50,'toolbar keeps its screen size');
   }
 }
 for(const zoom of [0.1,1,3]){

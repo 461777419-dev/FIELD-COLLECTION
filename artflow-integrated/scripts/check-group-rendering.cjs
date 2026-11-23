@@ -1,0 +1,55 @@
+require('./register-typescript.cjs');
+const assert=require('node:assert/strict');
+const React=require('react');
+const {renderToStaticMarkup}=require('react-dom/server');
+globalThis.location={pathname:'/board/'};
+const {CanvasElement}=require('../components/CanvasElement.tsx');
+const {getElementBounds}=require('../utils/canvasUtils.ts');
+const {applyDragCommit}=require('../utils/drag-commit.ts');
+const {serializeProjectDocument,deserializeProjectDocument}=require('../utils/projectDocument.ts');
+const {commitCanvasOperation,applyCanvasOperation}=require('../utils/operationHistory.ts');
+const {EditingOverlay}=require('../components/EditingOverlay.tsx');
+const {GroupToolbar}=require('../components/GroupToolbar.tsx');
+const children=[{id:'a',type:'shape',shapeType:'rectangle',x:10,y:20,width:100,height:80,fillColor:'#ff0000',strokeColor:'#000',strokeWidth:1,parentId:'group'},
+  {id:'b',type:'shape',shapeType:'rectangle',x:130,y:20,width:100,height:80,fillColor:'#00ff00',strokeColor:'#000',strokeWidth:1,parentId:'group'}];
+const group={id:'group',type:'group',name:'取景框',groupColor:'#416a99',groupNote:'植物配色\n参考素材',groupNoteCollapsed:false,x:10,y:20,width:220,height:80,rotation:0};
+const props={elements:[...children,group],selectedElementIds:['group'],zoom:1,editingElement:null,croppingState:null,aiRotationState:null,setEditingElement(){}};
+const walk=(node)=>React.isValidElement(node)?[node,...React.Children.toArray(node.props.children).flatMap(walk)]:[];
+let editing=null;
+const nodes=walk(CanvasElement.type({...props,element:group,setEditingElement:value=>editing=value}));
+const header=nodes.find(node=>node.props['data-group-drag-handle']);
+header.props.onDoubleClick({stopPropagation(){}});
+assert.deepEqual(editing,{id:'group',text:'取景框'});
+const inputMarkup=renderToStaticMarkup(React.createElement('svg',null,React.createElement(EditingOverlay,{zoom:1,elements:props.elements,editingElement:editing,setEditingElement(){},setElements(){},handleStopEditing(){}})));
+assert.ok(inputMarkup.includes('aria-label="编组名称"')&&inputMarkup.includes('value="取景框"'));
+const toolbarMarkup=renderToStaticMarkup(React.createElement(GroupToolbar,{element:group,zoom:1,onChange(){},onUngroup(){},onMerge(){}}));
+assert.equal((toolbarMarkup.match(/canvas-action-button/g)||[]).length,4);
+assert.ok(toolbarMarkup.includes('aria-label="编组设置"')&&toolbarMarkup.includes('aria-label="取消编组"'));
+for(const zoom of [.1,1,20]){
+  const markup=renderToStaticMarkup(React.createElement('svg',null,props.elements.map(element=>React.createElement(CanvasElement,{...props,zoom,element,key:element.id}))));
+  assert.ok(markup.includes('data-id="group"'));
+  assert.ok(markup.includes('data-id="a"')&&markup.includes('data-id="b"'));
+  assert.ok(!markup.includes('data-card-missing="group"'));
+  assert.ok(!markup.includes('Card unavailable'));
+  assert.ok(!markup.includes('foreignObject'),'structural group must not cover its children');
+  assert.ok(markup.includes('data-group-frame="group"')&&markup.includes('取景框')&&markup.includes('植物配色'));
+  assert.ok(markup.includes('fill="#416a99"')&&markup.includes('fill-opacity="0.15"'));
+}
+const bounds=getElementBounds(group,props.elements);
+assert.equal(bounds.x,-14);assert.equal(bounds.y,-78);assert.equal(bounds.width,268);assert.equal(bounds.height,202);
+const collapsed={...group,groupNoteCollapsed:true};
+assert.equal(getElementBounds(collapsed,[...children,collapsed]).height,148);
+const moved=applyDragCommit(props.elements,{elementIds:new Set(['a','b','group']),offset:{x:50,y:75}});
+assert.equal(moved[0].parentId,'group');assert.equal(moved[1].parentId,'group');
+assert.equal(getElementBounds(moved[2],moved).x,bounds.x+50);
+assert.equal(getElementBounds(moved[2],moved).y,bounds.y+75);
+const board={id:'board',name:'test',elements:props.elements,operationHistory:[],operationHistoryIndex:-1,zoom:1,panOffset:{x:0,y:0},canvasBackgroundColor:'#fff'};
+const changed=[...children,{...group,name:'新组名',groupColor:'#de8844',groupNoteCollapsed:true}];
+const journal=commitCanvasOperation([], -1, props.elements,changed);
+assert.equal(applyCanvasOperation(changed,journal.operationHistory[0],'undo')[2].name,'取景框');
+const restored=deserializeProjectDocument(JSON.parse(JSON.stringify(serializeProjectDocument([{...board,elements:changed,...journal}]))));
+assert.equal(restored[0].elements[2].groupColor,'#de8844');assert.equal(restored[0].elements[2].groupNote,'植物配色\n参考素材');assert.equal(restored[0].elements[2].groupNoteCollapsed,true);
+// Unavailable plugin cards still retain the recovery placeholder.
+const missing={...group,id:'missing',type:'unknown-card'};
+assert.ok(renderToStaticMarkup(React.createElement('svg',null,React.createElement(CanvasElement,{...props,element:missing}))).includes('data-card-missing="unknown-card"'));
+console.log('group rendering: structural groups keep children visible at all zooms; missing-plugin recovery preserved');

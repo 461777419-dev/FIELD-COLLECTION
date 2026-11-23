@@ -1311,9 +1311,11 @@ export const useCanvasInteractions = ({
                     // 旧路径（无通道）：元素位置已经逐帧写进文档，这里只补父级归属。
                     commitAction(els => {
                         const movingElementIds = new Set(dragStartElementPositions.current.keys());
+                        const groupIds=new Set(els.filter(element=>element.type==='group').map(element=>element.id));
 
                         return els.map(el => {
                             if (!movingElementIds.has(el.id) || el.type === 'frame') return el;
+                            if(el.parentId&&groupIds.has(el.parentId))return el;
                             // R17: current reader only narrows candidates; stale/missing snapshot falls back to all current elements.
                             const containingFrame = resolveContainingFrame(el, els, interactionViewportIndexRef?.current ?? null);
                             const newParentId = containingFrame ? containingFrame.id : undefined;

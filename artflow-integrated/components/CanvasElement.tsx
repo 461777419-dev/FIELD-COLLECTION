@@ -10,6 +10,7 @@ import { usePreparedImageSource } from '../utils/usePreparedImageSource';
 import { isImageSourceReady, warmImageSources } from '../utils/imageWarmCache';
 import { recordProfilerRender } from '../utils/perfTelemetry';
 import { canvasImageSource } from '../utils/canvasImageSource';
+import {groupColor,groupHeaderHeight} from '../utils/groupAppearance';
 
 interface ImageCanvasElementProps {
   element: ImageElement;
@@ -146,6 +147,18 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
 
   const renderContent = () => {
     switch (element.type) {
+      case 'group': {
+        const color=groupColor(element),header=groupHeaderHeight(element);
+        return <g data-group-frame={element.id}>
+          <rect x={bounds.x} y={bounds.y} width={bounds.width} height={bounds.height} rx={8} fill={color} fillOpacity={.15} stroke={color} strokeOpacity={isSelected?1:.65} strokeWidth={1.5/zoom} pointerEvents="none"/>
+          <rect data-group-drag-handle={element.id} x={bounds.x} y={bounds.y} width={bounds.width} height={header-8} rx={8} fill={color} fillOpacity={.12} style={{cursor:element.isLocked?'default':'move'}} onDoubleClick={event=>{if(element.isLocked)return;event.stopPropagation();setEditingElement({id:element.id,text:element.name||'编组'});}}/>
+          <svg x={bounds.x+16} y={bounds.y+12} width={Math.max(0,bounds.width-32)} height={header-16} pointerEvents="none" overflow="hidden">
+            {editingElement?.id!==element.id&&<text x={0} y={17} fontFamily="system-ui,sans-serif" fontSize={16} fontWeight={600} fill={color}>{element.name||'编组'}</text>}
+            {element.groupNote&&!element.groupNoteCollapsed&&element.groupNote.replace(/\r/g,'').split('\n').slice(0,2).map((line,index)=><text key={index} x={0} y={42+index*18} fontFamily="system-ui,sans-serif" fontSize={12} fill={color} fillOpacity={.88}>{line}</text>)}
+          </svg>
+          <title>{(element.name||'编组')+(element.groupNote?'\n'+element.groupNote:'')}</title>
+        </g>;
+      }
       case 'path': {
         const pathData = element.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
         return (
@@ -348,7 +361,7 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         style={{ willChange: isSelected && selectedElementIds.length === 1 ? 'transform' : 'auto' }}
       >
         {renderContent()}
-        {element.type==='image'&&isSelected&&!element.isLocked&&location.pathname.startsWith('/board/')&&(
+        {element.type==='image'&&isSelected&&!element.isLocked&&typeof location!=='undefined'&&location.pathname.startsWith('/board/')&&(
           <foreignObject x={bounds.x+bounds.width-30/zoom} y={bounds.y+5/zoom} width={25/zoom} height={25/zoom} style={{overflow:'visible'}}>
             <button className="atlas-image-drag-out" data-atlas-drag-out={element.id} draggable aria-label="拖出图片" title="按住小图标拖出图片；拖动图片主体可正常挪动"
               style={{width:25,height:25,transform:`scale(${1/zoom})`,transformOrigin:'top left'}}
@@ -370,6 +383,7 @@ export const CanvasElement = React.memo(CanvasElementBase, (prev, next) => {
     
     // 如果元素本身的对象引用变了，肯定要重绘 (Immutability pattern)
     if (prev.element !== next.element) return false;
+    if(prev.element.type==='group'&&(prev.elements!==next.elements||prev.zoom!==next.zoom))return false;
 
     // 选中状态改变必须重绘
     const wasSelected = prev.selectedElementIds.includes(prev.element.id);

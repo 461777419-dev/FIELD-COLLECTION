@@ -1,6 +1,7 @@
 
 import { Point, Element, ImageElement, VideoElement, FrameElement, PathElement, Board, Rect, ImageAspectRatio } from '../types';
 import React from 'react';
+import {groupFrameBounds} from './groupAppearance';
 import { DEFAULT_CANVAS_BACKGROUND } from '../plugin-runtime/ui-theme-settings';
 
 export const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -52,7 +53,7 @@ export const getElementBounds = (element: Element, allElements: Element[] = []):
             maxX = Math.max(maxX, bounds.x + bounds.width);
             maxY = Math.max(maxY, bounds.y + bounds.height);
         });
-        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        return groupFrameBounds({ x: minX, y: minY, width: maxX - minX, height: maxY - minY },element);
     }
     if (isBoxElement(element)) {
         return { x: element.x, y: element.y, width: element.width, height: element.height };

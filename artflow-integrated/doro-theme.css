@@ -9,6 +9,11 @@ html.doro-board, .doro-board body, .doro-board #root {color-scheme:light;backgro
 .doro-board [data-bp-ui-surface] svg {stroke-width:1.7;}
 .doro-board [data-media-toolbar] > div {background:#fffdfdf5!important;color:#765b70;border:1px solid #eadfe6;box-shadow:0 3px 12px #68455b12;}
 .doro-board [data-media-toolbar] button,.doro-board [data-media-toolbar] summary {color:#765b70;}
+.canvas-action-surface {display:flex;align-items:center;gap:4px;padding:6px;border:1px solid #eadce5;border-radius:24px;background:#fffafd;box-shadow:0 4px 16px #765b7014;color:#765b70;}
+.canvas-action-button {position:relative;display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:#f8edf4;color:#765b70;cursor:pointer;transition:background .15s,box-shadow .15s;box-sizing:border-box;list-style:none;}
+.canvas-action-button:hover {background:#efdeea;box-shadow:inset 0 0 0 1px #d4b8cc;}
+.canvas-action-button:focus-visible {outline:2px solid #b4779e;outline-offset:2px;}
+.canvas-action-button svg {width:18px;height:18px;stroke-width:1.7;}
 .doro-board [data-media-toolbar] button:hover,.doro-board [data-media-toolbar] summary:hover {background:#f7edf3;}
 .doro-board [role="dialog"] input, .doro-board [role="dialog"] select, .doro-board [role="dialog"] textarea {background:#fff8fc!important;color:#6b5267!important;border-color:#e8d5e1!important;}
 .doro-board [role="dialog"] [class*="text-gray"],.doro-board [role="dialog"] [class*="text-neutral"] {color:#8e7388!important;}
@@ -63,3 +68,47 @@ html.doro-board [data-bp-ui-navigator] {display:none !important;}
 .atlas-selection-tools button[draggable="true"]{cursor:grab}
 .atlas-selection-tools button[draggable="true"]:active{cursor:grabbing}
 .atlas-selection-feedback{font-size:12px;color:#675766;max-width:280px;line-height:1.4}
+
+/* Canvas chrome shares the same soft round controls as media/group actions. */
+.doro-board [data-bp-ui-floating-shell] {
+  background:#fffafded!important;border-color:#eadce5!important;color:#765b70;
+  box-shadow:0 4px 16px #765b7014!important;
+}
+.doro-board [data-bp-topbar-side] [data-bp-ui-floating-shell] {border-radius:25px!important;}
+.doro-board [data-bp-tool-button],
+.doro-board [data-bp-topbar-side] button:not([data-bp-ui-floating-shell]),
+.doro-board [data-bp-board-panel] > div:first-child button,
+.doro-board [data-bp-layer-panel] > div:first-child button {
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:36px;min-height:36px;
+  padding:8px;border-radius:50%!important;border:1px solid transparent;
+  background:#f8edf4!important;color:#765b70!important;box-shadow:none!important;
+  transition:background-color .15s,border-color .15s,box-shadow .15s;
+}
+.doro-board [data-bp-topbar-side] button[data-bp-ui-floating-shell] {background:#f8edf4!important;border-radius:50%!important;}
+.doro-board [data-bp-topbar-side] button:has(span),
+.doro-board [data-bp-topbar-side] button:has(div) {border-radius:20px!important;}
+.doro-board [data-bp-tool-button]:hover:not(:disabled),
+.doro-board [data-bp-topbar-side] button:hover:not(:disabled),
+.doro-board [data-bp-board-panel] > div:first-child button:hover:not(:disabled),
+.doro-board [data-bp-layer-panel] > div:first-child button:hover:not(:disabled) {background:#efdeea!important;border-color:#dcc2d3!important;}
+.doro-board [data-bp-tool-button][aria-pressed="true"],
+.doro-board [data-bp-topbar-side] button[aria-pressed="true"] {background:#efd8e7!important;border-color:#bd86a6!important;box-shadow:inset 0 0 0 1px #bd86a62b!important;color:#855471!important;}
+.doro-board [data-bp-tool-button]:disabled,
+.doro-board [data-bp-topbar-side] button:disabled {background:#f5f0f3!important;color:#b6a7b1!important;border-color:transparent!important;opacity:1!important;cursor:not-allowed;}
+.doro-board [data-bp-tool-button] svg,
+.doro-board [data-bp-topbar-side] button svg,
+.doro-board [data-bp-board-panel] button svg,
+.doro-board [data-bp-layer-panel] button svg {width:18px;height:18px;stroke-width:1.7;}
+.doro-board [data-bp-board-panel],.doro-board [data-bp-layer-panel] {border-radius:20px!important;}
+.doro-board [data-bp-board-panel] > div:first-child,
+.doro-board [data-bp-layer-panel] > div:first-child {padding:12px;border-color:#eadce5;background:#fffafd;}
+.doro-board [data-bp-board-panel] h3,.doro-board [data-bp-layer-panel] h3 {font-size:14px;letter-spacing:.3px;color:#765b70;}
+.doro-board [data-bp-board-tile] {border:1px solid transparent;border-radius:14px;background:#fffafd;}
+.doro-board [data-bp-board-tile]:hover {background:#faf0f6;border-color:#ead7e3;}
+.doro-board [data-bp-board-tile][data-active="true"] {background:#f6e5ef;border-color:#d7afc7;}
+.doro-board [data-bp-board-tile] > div:first-child {border-radius:10px;border-color:#eadce5;}
+.doro-board [data-bp-board-tile][data-active="true"] > div:first-child {border-color:#bd86a6;}
+.doro-board [data-bp-ui-surface]:not(button) {border-color:#eadce5!important;border-radius:18px;}
+.doro-board [role="menu"] {border-radius:14px;padding:6px;}
+.doro-board [role="menu"] button {border-radius:8px;}
+.doro-board [data-bp-tool-menu] {border-color:#eadce5;border-radius:20px!important;box-shadow:0 6px 20px #765b701a;}

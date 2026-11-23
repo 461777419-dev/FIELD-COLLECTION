@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Element } from '../types';
+import {getElementBounds} from '../utils/canvasUtils';
+import {groupColor} from '../utils/groupAppearance';
 
 interface EditingOverlayProps {
   zoom: number;
@@ -20,21 +22,23 @@ export const EditingOverlay: React.FC<EditingOverlayProps> = ({
 }) => {
   const editingTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editingInputRef = useRef<HTMLInputElement>(null);
+  const cancelled=useRef(false);
 
   useEffect(() => {
     if (editingElement) {
+      cancelled.current=false;
       const element = elements.find(el => el.id === editingElement.id);
       setTimeout(() => {
         if (element?.type === 'text' && editingTextareaRef.current) {
           editingTextareaRef.current.focus();
           editingTextareaRef.current.select();
-        } else if (element?.type === 'frame' && editingInputRef.current) {
+        } else if ((element?.type === 'frame'||element?.type==='group') && editingInputRef.current) {
           editingInputRef.current.focus();
           editingInputRef.current.select();
         }
       }, 0);
     }
-  }, [editingElement, elements]);
+  }, [editingElement?.id]);
 
   useEffect(() => {
     if (editingElement && editingTextareaRef.current) {
@@ -59,6 +63,17 @@ export const EditingOverlay: React.FC<EditingOverlayProps> = ({
   const element = elements.find(el => el.id === editingElement.id);
   if (!element) return null;
 
+  if(element.type==='group'){
+    const bounds=getElementBounds(element,elements);
+    return <foreignObject x={bounds.x+12} y={bounds.y+6} width={Math.max(80,bounds.width-24)} height={32} style={{overflow:'visible'}}
+      onPointerDown={event=>event.stopPropagation()} onMouseDown={event=>event.stopPropagation()} onDoubleClick={event=>event.stopPropagation()} onWheel={event=>event.stopPropagation()} onKeyUp={event=>event.stopPropagation()}>
+      <input ref={editingInputRef} aria-label="编组名称" maxLength={100} value={editingElement.text}
+        onChange={event=>setEditingElement({...editingElement,text:event.target.value})}
+        onBlur={()=>{if(!cancelled.current)handleStopEditing();}}
+        onKeyDown={event=>{event.stopPropagation();if(event.nativeEvent.isComposing)return;if(event.key==='Enter'){event.preventDefault();handleStopEditing();}if(event.key==='Escape'){event.preventDefault();cancelled.current=true;setEditingElement(null);}}}
+        style={{width:'100%',height:30,boxSizing:'border-box',font:'600 16px system-ui,sans-serif',color:groupColor(element),background:'#fffffff2',border:`1px solid ${groupColor(element)}`,borderRadius:4,padding:'3px 4px',outline:'none'}}/>
+    </foreignObject>;
+  }
   if (element.type === 'text') {
     return (
       <foreignObject

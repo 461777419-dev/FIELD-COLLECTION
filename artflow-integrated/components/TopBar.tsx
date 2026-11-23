@@ -58,6 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div data-bp-topbar-side="left" className="absolute top-4 left-4 z-20 flex items-center gap-2">
         <button
           onClick={() => setIsBoardPanelOpen(prev => !prev)}
+          aria-pressed={isBoardPanelOpen}
           style={{ backgroundColor: 'var(--ui-bg-color)' }}
           title={t('toolbar.boards')}
           data-bp-ui-floating-shell=""

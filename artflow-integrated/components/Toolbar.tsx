@@ -33,6 +33,8 @@ const ToolButton: React.FC<{
     <button
         onClick={onClick}
         aria-label={label}
+        data-bp-tool-button=""
+        aria-pressed={isActive}
         title={label}
         disabled={disabled}
         style={isActive ? { backgroundColor: 'var(--bp-accent-soft)', boxShadow: 'inset 2px 0 0 var(--bp-accent)' } : undefined}

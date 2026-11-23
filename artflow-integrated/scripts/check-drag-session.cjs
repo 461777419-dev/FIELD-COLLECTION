@@ -533,7 +533,9 @@ const runSourceGuards = () => {
   assert.match(mainCanvasSource, /transform=\{movesByTransform \? `translate\(/,
     'flat image batches should move wrappers rather than re-render each image');
   assert.match(mainCanvasSource, /data-bp-drag-x=\{movesByTransform/);
-  assert.match(mainCanvasSource, /visiblePresentElements\.map\(el =>/);
+  assert.match(mainCanvasSource, /visiblePresentElements\.filter\(el=>el\.type==='group'\)/);
+  assert.match(mainCanvasSource, /visiblePresentElements\.filter\(el=>el\.type!=='group'\)\]\.map\(el =>/,
+    'visible groups paint behind their child cards without changing the document order');
   assert.match(
     mainCanvasSource,
     /<SVGDefs elements=\{presentElements\} \/>/,

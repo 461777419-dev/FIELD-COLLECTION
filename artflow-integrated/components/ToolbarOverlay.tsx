@@ -108,7 +108,7 @@ export const ToolbarOverlay: React.FC<ToolbarOverlayProps> = ({
         } else if (element.type === 'video') {
             toolbarScreenWidth = 115;
         } else if (element.type === 'group') {
-            toolbarScreenWidth = 160;
+            toolbarScreenWidth = 172;
         } else if (element.type === 'path') {
             toolbarScreenWidth = 331 + 37;
         } else if (element.type === 'frame') {
@@ -117,15 +117,15 @@ export const ToolbarOverlay: React.FC<ToolbarOverlayProps> = ({
 
         const isMedia = ['image', 'video', 'audio'].includes(element.type);
         // Media controls stay readable at every zoom, outside the image and its drag icon.
-        if (isMedia) toolbarScreenWidth = element.type === 'image' ? 192 : 112;
+        if (isMedia) toolbarScreenWidth = element.type === 'image' ? 212 : 132;
         const toolbarZoom = zoom;
-        const toolbarScreenHeight = isMedia ? 40 : 48;
+        const toolbarScreenHeight = 50;
         const toolbarCanvasWidth = toolbarScreenWidth / toolbarZoom;
         const toolbarCanvasHeight = toolbarScreenHeight / toolbarZoom;
         
         let x = bounds.x + bounds.width / 2 - toolbarCanvasWidth / 2;
         let y = bounds.y - toolbarCanvasHeight - 35 / zoom;
-        if(isMedia){
+        if(isMedia||element.type==='group'){
             const placement=placeMediaToolbar(getSelectionBounds([element.id],elements),zoom,panOffset,viewportSize,toolbarScreenWidth,toolbarScreenHeight);
             x=placement.x;y=placement.y;
         }

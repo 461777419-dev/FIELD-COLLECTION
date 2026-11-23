@@ -40,8 +40,10 @@ export const applyDragCommit = (
       ));
 
   const resolveFrame = createContainingFrameResolver(movedElements, frameCandidateSnapshot);
+  const groupIds=new Set(movedElements.filter(element=>element.type==='group').map(element=>element.id));
   return movedElements.map(element => {
     if (!elementIds.has(element.id) || element.type === 'frame') return element;
+    if(element.parentId&&groupIds.has(element.parentId))return element;
     const containingFrame = resolveFrame(element);
     const newParentId = containingFrame ? containingFrame.id : undefined;
     if (element.parentId === newParentId) return element;

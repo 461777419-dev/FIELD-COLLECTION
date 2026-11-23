@@ -1,5 +1,6 @@
 import React from 'react';
 import { Element, PathElement } from '../types';
+import {GroupToolbar} from './GroupToolbar';
 
 interface ElementToolbarProps {
     zoom: number;
@@ -29,15 +30,16 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
     handleDeleteElement,
     t,
 }) => {
+    if(element.type==='group')return <GroupToolbar element={element} zoom={zoom} onChange={handlePropertyChange} onUngroup={handleUngroup} onMerge={handleMergeGroup}/>;
     const isMedia = ['image', 'video', 'audio'].includes(element.type);
     const mediaIcon = (path: string) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={path} /></svg>;
     if (isMedia) {
-        const actionClass = 'w-8 h-8 grid place-items-center rounded-md hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 transition-colors';
+        const actionClass = 'canvas-action-button';
         return (
-            <div data-media-toolbar style={{ transform: `scale(${1 / zoom})`, transformOrigin: 'top left', width: element.type === 'image' ? 192 : 112 }}
+            <div data-media-toolbar style={{ transform: `scale(${1 / zoom})`, transformOrigin: 'top left', width: element.type === 'image' ? 212 : 132 }}
                 onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
                 onDoubleClick={e => e.stopPropagation()} onWheel={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} onKeyUp={e => e.stopPropagation()}>
-                <div className="flex items-center gap-1 p-1 rounded-lg text-white" style={{ background: 'rgba(24,24,27,.9)' }}>
+                <div className="canvas-action-surface">
                     <button type="button" title={t('contextMenu.copy')} aria-label={t('contextMenu.copy')} onClick={() => handleCopyElement(element)} className={actionClass}>{mediaIcon('M9 9h11v11H9z M5 15H3V3h12v2')}</button>
                     {element.type === 'image' ? <>
                         <button type="button" title={t('contextMenu.download')} aria-label={t('contextMenu.download')} onClick={() => handleDownloadImage(element)} className={actionClass}>{mediaIcon('M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4')}</button>
@@ -66,8 +68,7 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
         toolbarScreenWidth = 315 + 156;
     } else if (element.type === 'video') {
         toolbarScreenWidth = 115;
-    } else if (element.type === 'group') {
-        toolbarScreenWidth = 160;
+
     } else if (element.type === 'path') {
         toolbarScreenWidth = 331 + 37;
     } else if (element.type === 'frame') {
@@ -103,8 +104,6 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
                         })}
                     </>
                 )}
-                {element.type === 'group' && <button title={t('contextMenu.ungroup')} onClick={handleUngroup} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><path d="M17.5 14 14 17.5"/><path d="M6.5 7 10 3.5"/></svg></button>}
-                {element.type === 'group' && <button title={t('contextMenu.mergeGroup')} onClick={handleMergeGroup} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m3 16 7-7"/><path d="m21 3-7.873 7.873a4 4 0 0 0-1.127 2.828V22"/></svg></button>}
                 {element.type === 'image' && <button title={t('contextMenu.download')} onClick={() => handleDownloadImage(element)} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>}
                 {element.type === 'video' && <a title={t('contextMenu.download')} href={element.href} download={`video-${element.id}.mp4`} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></a>}
                 {element.type === 'image' && <button title={t('contextMenu.crop')} onClick={() => handleStartCrop(element)} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg></button>}
