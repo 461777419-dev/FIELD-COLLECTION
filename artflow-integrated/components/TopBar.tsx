@@ -27,6 +27,7 @@ interface TopBarProps {
   hasImportJobs: boolean;
   hasActiveImportJobs: boolean;
   projectFolderName: string | null;
+  onImportPresentation?: (files:File[])=>void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -51,8 +52,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenRecentProject,
   hasImportJobs,
   hasActiveImportJobs,
-  projectFolderName
+  projectFolderName,
+  onImportPresentation
 }) => {
+  const presentationInput=React.useRef<HTMLInputElement>(null);
   return (
     <>
       <div data-bp-topbar-side="left" className="absolute top-4 left-4 z-20 flex items-center gap-2">
@@ -105,13 +108,18 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       <div data-bp-topbar-side="right" className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {onImportPresentation&&location.pathname.startsWith('/board/')&&<>
+          <input ref={presentationInput} type="file" accept=".ppt,.pptx" multiple hidden onChange={event=>{const files=Array.from(event.target.files||[]);event.target.value='';if(files.length)onImportPresentation(files);}}/>
+          <button aria-label="导入 PPT" title="导入 PPT／PPTX：单份最大 512MB、200 页，需本机安装 PowerPoint" onClick={()=>presentationInput.current?.click()} className="rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-color)] px-3 py-2 text-xs text-[var(--ui-text)]">+ PPT</button>
+        </>}
         <div
           style={{ backgroundColor: 'var(--ui-bg-color)' }}
           data-bp-ui-floating-shell="" className="flex items-center gap-1 p-1 border border-[var(--ui-border)] rounded-[14px]"
         >
           <button
             onClick={handleStartPresentation}
-            title={t('sidePanel.present')}
+            title={framesCount===0?'导入 PPT 后可演示，或先添加幻灯片画框':t('sidePanel.present')}
+            aria-label="演示"
             disabled={framesCount === 0}
             className="p-2 rounded-full text-[var(--ui-text)] hover:bg-[var(--ui-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >

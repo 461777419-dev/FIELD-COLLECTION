@@ -5,6 +5,7 @@
 
 import type { Element, ImageElement, ShapeElement, TextElement, LineElement, ArrowElement, PathElement, FrameElement } from '../../types';
 import { getElementBounds } from '../../utils/canvasUtils';
+import {drawErasureStrokes} from '../../utils/element-erasure';
 import type { CanvasExportScope } from '../../plugin-runtime/canvas-export-source';
 
 const EXPORT_PADDING = 24;
@@ -168,7 +169,9 @@ const drawElement = (ctx: CanvasRenderingContext2D, element: Element, images: Ma
         ctx.beginPath();
         ctx.moveTo(path.points[0].x, path.points[0].y);
         for (const point of path.points.slice(1)) ctx.lineTo(point.x, point.y);
-        ctx.stroke();
+        if(path.closed)ctx.closePath();
+        if(path.fillColor){ctx.fillStyle=path.fillColor;ctx.fill();}
+        if(path.strokeWidth>0)ctx.stroke();
       }
       break;
     }
@@ -222,11 +225,24 @@ export const composeExportPng = async (scope: CanvasExportScope, selectionOnly: 
   await Promise.all([...srcs].map(async src => images.set(src, await loadImage(src))));
 
   const includedIds = new Set(included.map(element => element.id));
+  let erasureLayer:HTMLCanvasElement|null=null;
   for (const element of scope.elements) {
     if (!includedIds.has(element.id)) continue;
     ctx.save();
     if(element.grayscale)ctx.filter='grayscale(1)';
-    drawElement(ctx, element, images);
+    if(element.erasures?.length){
+      erasureLayer ||= document.createElement('canvas');
+      erasureLayer.width=canvas.width;erasureLayer.height=canvas.height;
+      const layer=erasureLayer.getContext('2d');
+      if(!layer)throw new Error('无法创建范围擦除导出图层');
+      layer.setTransform(ctx.getTransform());
+      const elementBounds=getElementBounds(element);
+      const rotation='rotation' in element?element.rotation||0:0;
+      if(rotation){const cx=elementBounds.x+elementBounds.width/2,cy=elementBounds.y+elementBounds.height/2;layer.translate(cx,cy);layer.rotate(rotation*Math.PI/180);layer.translate(-cx,-cy);}
+      drawElement(layer,element,images);
+      drawErasureStrokes(layer,element,elementBounds);
+      ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(erasureLayer,0,0);
+    }else drawElement(ctx, element, images);
     ctx.restore();
   }
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));

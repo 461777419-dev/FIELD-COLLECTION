@@ -548,7 +548,6 @@ export const useElementActions = ({
 
     const handleSetActiveTool = useCallback((tool: any) => {
         setActiveTool(tool); setAiRotationState(null);
-        if (tool === 'highlighter') setDrawingOptions(o => ({...o, opacity: 0.5}));
     }, [setActiveTool, setAiRotationState, setDrawingOptions]);
 
     const handleFrameAspectRatioChange = useCallback((frameId: string, aspectRatio: string) => {

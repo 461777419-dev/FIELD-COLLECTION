@@ -1,5 +1,6 @@
 
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, Profiler } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useId, Profiler } from 'react';
+import {erasurePath,erasureTransform,erasurePadding} from '../utils/element-erasure';
 import { Element, ImageElement, Rect, AIRotationState } from '../types';
 import { getElementBounds } from '../utils/canvasUtils';
 import { getMaterializedCardComponent, getMaterializedCardPluginId } from '../plugin-runtime/renderer-materialization';
@@ -140,6 +141,8 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
   isInteracting = false,
 }) => {
   const bounds = getElementBounds(element, elements);
+  const erasureId=useId();
+  const maskPad=erasurePadding(element);
   const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
   const rotation = 'rotation' in element && element.rotation ? element.rotation : 0;
   const transform = rotation !== 0 ? `rotate(${rotation} ${center.x} ${center.y})` : '';
@@ -152,7 +155,7 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         return <g data-group-frame={element.id}>
           <rect x={bounds.x} y={bounds.y} width={bounds.width} height={bounds.height} rx={8} fill={color} fillOpacity={.15} stroke={color} strokeOpacity={isSelected?1:.65} strokeWidth={1.5/zoom} pointerEvents="none"/>
           <rect data-group-drag-handle={element.id} x={bounds.x} y={bounds.y} width={bounds.width} height={header-8} rx={8} fill={color} fillOpacity={.12} style={{cursor:element.isLocked?'default':'move'}} onDoubleClick={event=>{if(element.isLocked)return;event.stopPropagation();setEditingElement({id:element.id,text:element.name||'编组'});}}/>
-          <svg x={bounds.x+16} y={bounds.y+12} width={Math.max(0,bounds.width-32)} height={header-16} pointerEvents="none" overflow="hidden">
+          <svg x={bounds.x+16} y={bounds.y+12} width={Math.max(0,bounds.width-32)} height={header-16} pointerEvents="none" overflow="hidden" style={{userSelect:'none'}}>
             {editingElement?.id!==element.id&&<text x={0} y={17} fontFamily="system-ui,sans-serif" fontSize={16} fontWeight={600} fill={color}>{element.name||'编组'}</text>}
             {element.groupNote&&!element.groupNoteCollapsed&&element.groupNote.replace(/\r/g,'').split('\n').slice(0,2).map((line,index)=><text key={index} x={0} y={42+index*18} fontFamily="system-ui,sans-serif" fontSize={12} fill={color} fillOpacity={.88}>{line}</text>)}
           </svg>
@@ -160,17 +163,17 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         </g>;
       }
       case 'path': {
-        const pathData = element.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+        const pathData = element.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + (element.closed ? ' Z' : '');
         return (
           <path
             d={pathData}
             stroke={element.strokeColor}
             strokeWidth={element.strokeWidth}
-            fill="none"
+            fill={element.fillColor || 'none'}
             strokeLinecap="round"
             strokeLinejoin="round"
-            pointerEvents="stroke"
-            strokeOpacity={element.opacity ?? 1}
+            pointerEvents={element.fillColor ? 'visiblePainted' : 'stroke'}
+            opacity={element.opacity ?? 1}
           />
         );
       }
@@ -206,7 +209,7 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         const isEditing = editingElement?.id === element.id;
         return !isEditing ? (
           <foreignObject x={element.x} y={element.y} width={element.width} height={element.height} style={{ overflow: 'visible' }}>
-            <div style={{ fontSize: element.fontSize, color: element.fontColor, width: '100%', height: '100%', wordBreak: 'break-word' }}>
+            <div style={{ fontSize: element.fontSize, color: element.fontColor, width: '100%', height: '100%', wordBreak: 'break-word', userSelect:'none' }}>
               {element.text}
             </div>
           </foreignObject>
@@ -360,7 +363,13 @@ const CanvasElementBase: React.FC<CanvasElementProps> = ({
         // creates hundreds of compositor layers; only a single selection needs the hint.
         style={{ willChange: isSelected && selectedElementIds.length === 1 ? 'transform' : 'auto' }}
       >
-        {renderContent()}
+        {element.erasures?.length ? <>
+          <defs><mask id={erasureId} maskUnits="userSpaceOnUse" x={bounds.x-maskPad} y={bounds.y-maskPad} width={Math.max(1,bounds.width)+maskPad*2} height={Math.max(1,bounds.height)+maskPad*2} style={{maskType:'luminance'}}>
+            <rect x={bounds.x-maskPad} y={bounds.y-maskPad} width={Math.max(1,bounds.width)+maskPad*2} height={Math.max(1,bounds.height)+maskPad*2} fill="white"/>
+            {element.erasures.map((stroke,index)=><path key={index} transform={erasureTransform(stroke,bounds)} d={erasurePath(stroke)} stroke="black" strokeWidth={stroke.radius*2} strokeLinecap="round" strokeLinejoin="round" fill="none"/>)}
+          </mask></defs>
+          <g mask={`url(#${erasureId})`}>{renderContent()}</g>
+        </> : renderContent()}
         {element.type==='image'&&isSelected&&!element.isLocked&&typeof location!=='undefined'&&location.pathname.startsWith('/board/')&&(
           <foreignObject x={bounds.x+bounds.width-30/zoom} y={bounds.y+5/zoom} width={25/zoom} height={25/zoom} style={{overflow:'visible'}}>
             <button className="atlas-image-drag-out" data-atlas-drag-out={element.id} draggable aria-label="拖出图片" title="按住小图标拖出图片；拖动图片主体可正常挪动"

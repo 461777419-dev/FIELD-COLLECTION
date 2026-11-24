@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import type { Kernel } from '../plugin-runtime/kernel';
 import { listSettingsSectionContributions } from '../plugin-runtime/settings-contributions';
+import {INTEGRATED_HIDDEN_SECTIONS,INTEGRATED_ADVANCED_SECTIONS} from '../utils/integrated-settings';
 import { PluginErrorBoundary, reportPluginFailure } from '../plugin-runtime/plugin-error-boundary';
 import { SETTINGS_UI_BRIDGE_SERVICE, createSettingsUiBridge, type SettingsUiBridge } from '../plugin-runtime/settings-bridge';
 import { useWorkspaceState } from '../hooks/useWorkspaceLayout';
@@ -125,7 +126,7 @@ export const CanvasSettings: React.FC<CanvasSettingsProps> = ({
         isSettingsSectionId,
     );
     const integrated=location.pathname.startsWith('/board/');
-    const settingsSections = listSettingsSectionContributions(kernel).filter(section=>!integrated||section.id!=='builtin.settings-ai-models');
+    const settingsSections = listSettingsSectionContributions(kernel).filter(section=>!integrated||!INTEGRATED_HIDDEN_SECTIONS.has(section.id));
     const activeSettingsSection = settingsSections.find(section => section.id === activeTab);
     const ActiveSettingsSection = activeSettingsSection?.value.component;
 
@@ -261,11 +262,12 @@ export const CanvasSettings: React.FC<CanvasSettingsProps> = ({
         }
     };
     const coreNav = settingsSections
-        .filter(section => section.value.navGroup === 'core')
+        .filter(section => section.value.navGroup === 'core'&&(!integrated||!INTEGRATED_ADVANCED_SECTIONS.has(section.id)))
         .map(section => ({ key: section.id, label: readSectionLabel(section) }));
     const pluginNav = settingsSections
         .filter(section => section.value.navGroup !== 'core')
         .map(section => ({ key: section.id, label: readSectionLabel(section) }));
+    const advancedNav=integrated?settingsSections.filter(section=>INTEGRATED_ADVANCED_SECTIONS.has(section.id)).map(section=>({key:section.id,label:readSectionLabel(section)})):[];
     const renderNavButton = ({ key, label }: { key: string; label: string }) => (
         <button
             key={key}
@@ -324,6 +326,7 @@ export const CanvasSettings: React.FC<CanvasSettingsProps> = ({
                                 {pluginNav.map(renderNavButton)}
                             </div>
                         )}
+                        {advancedNav.length>0&&<details open={advancedNav.some(item=>item.key===activeTab)} className="rounded-xl border border-[var(--ui-border)] p-2"><summary className="cursor-pointer text-xs">高级与维护</summary><div className="mt-2 space-y-1">{advancedNav.map(renderNavButton)}</div></details>}
                     </nav>
 
                     <div className="min-h-0 space-y-2.5 overflow-y-auto pr-1 pl-0.5">

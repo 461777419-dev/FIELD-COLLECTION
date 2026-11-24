@@ -1,6 +1,6 @@
 require('./register-typescript.cjs');
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const {moveImagesBetweenBoards,movableBoardImages,replayBoardOperation,canReplayBoardOperation}=require('../utils/board-image-transfer.ts');
+const {moveImagesBetweenBoards,movableBoardImages,replayBoardOperation,canReplayBoardOperation,boardOperationBlocker}=require('../utils/board-image-transfer.ts');
 const {commitCanvasOperation}=require('../utils/operationHistory.ts');
 const image=(id,x=10,y=20)=>({id,type:'image',x,y,width:100,height:80,href:'/board-media/original.png',originalHref:'/media/original',rotation:20,opacity:.6,grayscale:true,borderRadius:12});
 const board=(id,elements=[])=>({id,name:id,elements,operationHistory:[],operationHistoryIndex:-1,zoom:1,panOffset:{x:0,y:0},canvasBackgroundColor:'#fff'});
@@ -27,7 +27,10 @@ test('另一边有后续编辑时先撤销该编辑，避免只恢复一半的�
   const after=[...moved[1].elements,image('later')];
   const edited=[moved[0],{...moved[1],elements:after,...commitCanvasOperation(moved[1].operationHistory,moved[1].operationHistoryIndex,moved[1].elements,after)}];
   assert.equal(canReplayBoardOperation(edited,'source','undo'),false);assert.equal(replayBoardOperation(edited,'source','undo'),edited);
+  assert.equal(boardOperationBlocker(edited,'source').boardId,'target');
+  assert.ok(boardOperationBlocker(edited,'source').message.includes('target'));
   const step=replayBoardOperation(edited,'target','undo');assert.equal(step[1].elements.length,1);
+  assert.equal(boardOperationBlocker(step,'source'),undefined);
   const undone=replayBoardOperation(step,'source','undo');assert.equal(undone[0].elements.length,1);assert.equal(undone[1].elements.length,0);
 });
 test('锁定图片及锁定组内图片不可移动，缺失目标与重复ID无副作用',()=>{

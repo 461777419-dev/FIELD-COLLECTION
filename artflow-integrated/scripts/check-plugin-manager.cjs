@@ -118,6 +118,15 @@ assert.equal(panels[0].value.floatingWidth, 'lg');
 assert.equal(panels[0].value.title('zho'), '插件与扩展');
 const Component = panels[0].value.component;
 const html = renderToStaticMarkup(React.createElement(Component, { kernel, onClose: () => {} }));
+const savedLocation=global.location;
+try{
+  global.location={pathname:'/board/'};
+  const integratedHtml=renderToStaticMarkup(React.createElement(Component,{kernel,onClose:()=>{}}));
+  assert.match(integratedHtml,/功能扩展/);
+  assert.match(integratedHtml,/本地组件/);
+  assert.doesNotMatch(integratedHtml,/>安装插件</,'unsupported native install action stays out of integrated mode');
+  assert.doesNotMatch(integratedHtml,/rejected: host bridge unavailable/);
+}finally{if(savedLocation===undefined)delete global.location;else global.location=savedLocation;}
 assert.match(html, /插件与扩展/);
 assert.match(html, /外部插件/);
 assert.match(html, /JSON 扩展包/);

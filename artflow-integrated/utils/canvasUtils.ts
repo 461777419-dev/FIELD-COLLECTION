@@ -2,6 +2,7 @@
 import { Point, Element, ImageElement, VideoElement, FrameElement, PathElement, Board, Rect, ImageAspectRatio } from '../types';
 import React from 'react';
 import {groupFrameBounds} from './groupAppearance';
+import {maskElementSvg} from './element-erasure';
 import { DEFAULT_CANVAS_BACKGROUND } from '../plugin-runtime/ui-theme-settings';
 
 export const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -126,8 +127,8 @@ export const rasterizeElement = (element: Exclude<Element, ImageElement | VideoE
         switch (element.type) {
             case 'path': {
                 const pointsWithOffset = element.points.map(p => ({ x: p.x + offsetX, y: p.y + offsetY }));
-                const pathData = pointsWithOffset.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                elementSvgString = `<path d="${pathData}" stroke="${element.strokeColor}" stroke-width="${element.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="${element.opacity || 1}" />`;
+                const pathData = pointsWithOffset.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + (element.closed ? ' Z' : '');
+                elementSvgString = `<path d="${pathData}" stroke="${element.strokeColor}" stroke-width="${element.strokeWidth}" fill="${thumbnailXml(element.fillColor || 'none')}" stroke-linecap="round" stroke-linejoin="round" opacity="${element.opacity ?? 1}" />`;
                 break;
             }
             case 'shape': {
@@ -179,6 +180,7 @@ export const rasterizeElement = (element: Exclude<Element, ImageElement | VideoE
             }
         }
 
+        elementSvgString=maskElementSvg(elementSvgString,element,bounds,'raster-erase',offsetX,offsetY);
         const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}">${elementSvgString}</svg>`;
         
         const img = new Image();
@@ -238,8 +240,8 @@ export const rasterizeElements = (elementsToRasterize: Exclude<Element, ImageEle
             switch (element.type) {
                  case 'path': {
                     const pointsWithOffset = element.points.map(p => ({ x: p.x + offsetX, y: p.y + offsetY }));
-                    const pathData = pointsWithOffset.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                    elementSvgString = `<path d="${pathData}" stroke="${element.strokeColor}" stroke-width="${element.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="${element.opacity || 1}" />`;
+                    const pathData = pointsWithOffset.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + (element.closed ? ' Z' : '');
+                    elementSvgString = `<path d="${pathData}" stroke="${element.strokeColor}" stroke-width="${element.strokeWidth}" fill="${thumbnailXml(element.fillColor || 'none')}" stroke-linecap="round" stroke-linejoin="round" opacity="${element.opacity ?? 1}" />`;
                     break;
                  }
                 case 'shape': {
@@ -288,7 +290,7 @@ export const rasterizeElements = (elementsToRasterize: Exclude<Element, ImageEle
                     break;
                 }
             }
-            return elementSvgString;
+            return maskElementSvg(elementSvgString,element,getElementBounds(element),`raster-erase-${elementsToRasterize.indexOf(element)}`,offsetX,offsetY);
         }).join('');
 
         const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}">${elementSvgStrings}</svg>`;
@@ -459,6 +461,12 @@ export const isElementVisible = (element: Element, viewportBounds: { x: number; 
 // Immutable document arrays make unchanged-board previews reusable without retaining old boards.
 const boardThumbnailCache = new WeakMap<Element[], { bgColor: string; thumbnail: string }>();
 
+// Inline SVG can load managed image URLs; an SVG used as <img> cannot load its
+// external image references. All document strings are escaped before insertion.
+export const boardThumbnailMarkup = (thumbnail: string): string =>
+    decodeURIComponent(escape(atob(thumbnail.split(',')[1])));
+const thumbnailXml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[char]!));
+
 export const generateBoardThumbnail = (elements: Element[], bgColor: string): string => {
     const cached = elements && boardThumbnailCache.get(elements);
     if (cached?.bgColor === bgColor) return cached.thumbnail;
@@ -468,6 +476,24 @@ export const generateBoardThumbnail = (elements: Element[], bgColor: string): st
 };
 
 const renderBoardThumbnail = (elements: Element[], bgColor: string): string => {
+    const byId = new Map((elements || []).map(el => [el.id, el]));
+    elements = (elements || []).filter(el => {
+        const seen = new Set<string>();
+        let current: Element | undefined = el;
+        while (current) {
+            if (current.isVisible === false || seen.has(current.id)) return false;
+            seen.add(current.id);
+            current = current.parentId ? byId.get(current.parentId) : undefined;
+        }
+        return true;
+    }).map(el => {
+        const safe = {...el};
+        for (const key of ['x','y','width','height','rotation','fontSize','borderRadius']) {
+            if (key in safe) safe[key] = Number.isFinite(Number(safe[key])) ? Number(safe[key]) : 0;
+        }
+        return safe;
+    });
+    bgColor = thumbnailXml(bgColor);
     const THUMB_WIDTH = 120;
     const THUMB_HEIGHT = 80;
 
@@ -498,19 +524,31 @@ const renderBoardThumbnail = (elements: Element[], bgColor: string): string => {
    const dx = (THUMB_WIDTH - contentWidth * scale) / 2 - minX * scale;
    const dy = (THUMB_HEIGHT - contentHeight * scale) / 2 - minY * scale;
 
-   const svgContent = elements.map(el => {
+   const svgContent = [...elements.filter(el => el.type === 'group' || el.type === 'frame'), ...elements.filter(el => el.type !== 'group' && el.type !== 'frame')].map((el,index) => {
         if (!el) return '';
-        if (el.type === 'path' && (el as PathElement).points) {
-           const pathData = (el as PathElement).points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-           return `<path d="${pathData}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="${el.opacity || 1}" />`;
+        const bounds = getElementBounds(el, elements);
+        const rotation = 'rotation' in el ? el.rotation || 0 : 0;
+        const wrap = (content: string) => `<g transform="rotate(${thumbnailXml(rotation)} ${bounds.x + bounds.width / 2} ${bounds.y + bounds.height / 2})" opacity="${thumbnailXml('opacity' in el ? el.opacity ?? 1 : 1)}">${maskElementSvg(content,el,bounds,`thumb-erase-${index}`)}</g>`;
+        if (el.type === 'path' || el.type === 'line' || el.type === 'arrow') {
+           const pathData = el.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + (el.type==='path'&&el.closed ? ' Z' : '');
+           return wrap(`<path d="${thumbnailXml(pathData)}" stroke="${thumbnailXml(el.strokeColor)}" stroke-width="${thumbnailXml(el.strokeWidth)}" fill="${thumbnailXml(el.type==='path'?el.fillColor||'none':'none')}" stroke-linecap="round" stroke-linejoin="round" />`);
         }
         if (el.type === 'image') {
-            return `<image href="${el.thumbnailHref || el.mediumHref || el.href}" x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" opacity="${el.opacity ?? 1}"/>`;
+            return wrap(`<image href="${thumbnailXml(el.thumbnailHref || el.mediumHref || el.href)}" x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}"/>`);
+        }
+        if (el.type === 'shape') {
+            const style = `fill="${thumbnailXml(el.fillColor || 'none')}" stroke="${thumbnailXml(el.strokeColor)}" stroke-width="${thumbnailXml(el.strokeWidth)}"`;
+            return wrap(el.shapeType === 'circle' ? `<ellipse cx="${el.x+el.width/2}" cy="${el.y+el.height/2}" rx="${el.width/2}" ry="${el.height/2}" ${style}/>` : el.shapeType === 'triangle' ? `<polygon points="${el.x+el.width/2},${el.y} ${el.x+el.width},${el.y+el.height} ${el.x},${el.y+el.height}" ${style}/>` : `<rect x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" rx="${el.borderRadius || 0}" ${style}/>`);
+        }
+        if (el.type === 'text') return wrap(`<text x="${el.x}" y="${el.y}" font-size="${el.fontSize}" fill="${thumbnailXml(el.fontColor)}" dominant-baseline="hanging">${el.text.split('\n').map((line,i)=>`<tspan x="${el.x}" dy="${i ? el.fontSize*1.2 : 0}">${thumbnailXml(line)}</tspan>`).join('')}</text>`);
+        if (el.type === 'group' || el.type === 'frame') {
+            const color = el.type === 'group' ? el.groupColor || '#a56b91' : el.backgroundColor || '#a56b91';
+            return `<rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="${thumbnailXml(color)}" fill-opacity="0.12" stroke="${thumbnailXml(color)}" stroke-width="${1/scale}"/><text x="${bounds.x+4/scale}" y="${bounds.y+12/scale}" font-size="${9/scale}" fill="${thumbnailXml(color)}">${thumbnailXml(el.name || '编组')}</text>`;
         }
         return '';
    }).join('');
 
-   const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${THUMB_WIDTH}" height="${THUMB_HEIGHT}"><rect width="100%" height="100%" fill="${bgColor}" /><g transform="translate(${dx} ${dy}) scale(${scale})">${svgContent}</g></svg>`;
+   const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${THUMB_WIDTH} ${THUMB_HEIGHT}"><rect width="100%" height="100%" fill="${bgColor}" /><g transform="translate(${dx} ${dy}) scale(${scale})">${svgContent}</g></svg>`;
    return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(fullSvg)))}`;
 };
 

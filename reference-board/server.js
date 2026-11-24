@@ -435,6 +435,32 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const route = url.pathname;
+    if(route==='/api/board/history'&&req.method==='GET')return send(res,200,await withBoardLock(()=>({items:boardLibrary.history.list(url.searchParams.get('board'))})));
+    if(route==='/api/board/history'&&req.method==='POST'){
+      const body=JSON.parse((await readBody(req,100*1024*1024)).toString());
+      return send(res,201,await withBoardLock(()=>boardLibrary.history.snapshot(body.board,body.manual?'手动备份':'自动备份',!!body.manual)));
+    }
+    if(route==='/api/board/history/read'&&req.method==='GET')return send(res,200,await withBoardLock(()=>boardLibrary.history.read(url.searchParams.get('board'),url.searchParams.get('id'))));
+    if(route==='/api/images/duplicates'&&req.method==='GET'){
+      const images=state.images;
+      // Stored perceptual hashes are created at import; scanning never changes images.
+      const pairs=[];let examined=0;
+      outer:for(let i=0;i<images.length;i++)for(let j=i+1;j<images.length;j++){
+        if(++examined>2000000||pairs.length>=200)break outer;
+        const a=images[i],b=images[j];
+        const exact=a.contentHash&&a.contentHash===b.contentHash;
+        const similar=!exact&&a.visualHash&&b.visualHash&&colorsClose(a.visualColor,b.visualColor)&&hashDistance(a.visualHash,b.visualHash)<=5;
+        if(exact||similar)pairs.push({kind:exact?'exact':'similar',a:{id:a.id,name:a.name},b:{id:b.id,name:b.name}});
+      }
+      return send(res,200,{pairs,truncated:examined>2000000||pairs.length>=200,missingHashes:images.filter(image=>!image.visualHash).length});
+    }
+    if(req.method==='POST'&&route==='/api/board/import-ppt'){
+      if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`)return send(res,403,{error:'不允许跨站导入'});
+      const {convertPresentation,MAX_PPT_BYTES}=require('./ppt-import');
+      if(Number(req.headers['content-length'])>MAX_PPT_BYTES){req.resume();return send(res,413,{error:'单份 PPT 最大支持 512MB，请拆分后导入'});}
+      try{return send(res,200,await convertPresentation(req,url.searchParams.get('ext'),{mediaDirectory:path.join(boardDir,'media')}));}
+      catch(error){req.resume();if(!res.destroyed)return send(res,error.status||400,{error:error.message});return;}
+    }
     if (req.method === 'GET' && route.startsWith('/assets/doro/')) {
       const name = route.slice('/assets/doro/'.length);
       if (!['board-icon.png','doro-rest.png','doro-note.png'].includes(name)) return send(res,404,{error:'图标不存在'});

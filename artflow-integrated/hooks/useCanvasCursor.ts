@@ -20,7 +20,7 @@ export const useCanvasCursor = ({
         if (aiRotationState) return 'grab';
         if (interactionMode.current === 'pan') return 'grabbing';
         if (activeTool === 'pan') return 'grab';
-        if (['draw', 'erase', 'rectangle', 'circle', 'triangle', 'arrow', 'line', 'text', 'highlighter', 'lasso', 'frame'].includes(activeTool)) return 'crosshair';
+        if (['draw', 'erase', 'rectangle', 'circle', 'triangle', 'arrow', 'line', 'text', 'lasso', 'frame'].includes(activeTool)) return 'crosshair';
         return 'default';
     }, [croppingState, aiRotationState, activeTool, interactionMode.current]);
 

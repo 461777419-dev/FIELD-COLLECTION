@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 exports.createBoardLibrary=({state,save,dataDir,boardDir,mediaDir,folderDiskPath,uniqueFolderDiskName,mediaPath,renameFolder,importMedia})=>{
+  const history=require('./board-history').createBoardHistory(boardDir);
   const file=path.join(boardDir,'document.json');
   state.boardLinks ||= [];
   state.unlinkedBoardFolders ||= [];
@@ -100,6 +101,7 @@ exports.createBoardLibrary=({state,save,dataDir,boardDir,mediaDir,folderDiskPath
   }
   async function put(body){
     backup();const old=read();
+    for(const board of old.boards||[])history.snapshot(board,'保存前自动备份');
     const incomingIds=new Set(body.boards.map(board=>board.id));
     // Deletion is explicit in a saved document; archived content remains recoverable.
     for(const board of old.boards||[]){const link=state.boardLinks.find(item=>item.boardId===board.id&&!item.archived);if(link&&!incomingIds.has(board.id))archive(link,board);}
@@ -261,5 +263,5 @@ exports.createBoardLibrary=({state,save,dataDir,boardDir,mediaDir,folderDiskPath
   }
   const archivedIds=()=>state.boardLinks.filter(link=>link.archived).map(link=>link.boardId);
   const recovery=boards=>{backup();for(const board of boards)atomic(path.join(boardDir,'archive',crypto.randomUUID()+'.json'),{board,archivedAt:Date.now(),reason:'folder-removed-editor-recovery'});return {ok:true};};
-  return {catalog,document,put,removeFolders,archivedIds,recovery,sync,trashImages,restoreMedia};
+  return {catalog,document,put,removeFolders,archivedIds,recovery,sync,trashImages,restoreMedia,history};
 };

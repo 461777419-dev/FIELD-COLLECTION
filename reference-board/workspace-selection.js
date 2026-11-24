@@ -6,6 +6,29 @@
   const self=crypto.randomUUID(),channel=new BroadcastChannel('atlas-selection-'+token);
   let applying=false,lastGallery='[]',latest=null,clock=0,transferring=0;
   let pendingReveal=null,lastRevealed=null;
+  let savedFilter=null;
+  function revealNotice(message, label, action){
+    document.querySelector('.selection-reveal-notice')?.remove();
+    const notice=document.createElement('div');notice.className='selection-reveal-notice';notice.setAttribute('role','status');
+    const text=document.createElement('span');text.textContent=message;notice.append(text);
+    const button=document.createElement('button');button.type='button';button.textContent=label;button.onclick=action;notice.append(button);
+    const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','关闭定位提示');close.onclick=()=>notice.remove();notice.append(close);
+    document.querySelector('.gallery-area')?.prepend(notice);
+  }
+  function renderFilter(filter){
+    applying=true;
+    try{state.view=filter.view;state.query=filter.query;document.querySelector('#searchInput').value=state.query;render();}
+    finally{applying=false;}
+  }
+  function showHiddenSelection(message){
+    if(!savedFilter)savedFilter={view:state.view,query:state.query};
+    renderFilter({view:'all',query:''});
+    lastRevealed=null;pendingReveal=message;revealGallery();
+    revealNotice('已临时显示所有图片，原筛选已保留。','恢复筛选',()=>{
+      if(savedFilter)renderFilter(savedFilter);
+      savedFilter=null;document.querySelector('.selection-reveal-notice')?.remove();
+    });
+  }
   const catalog=()=>state.images.map(({id,contentHash})=>({id,contentHash}));
   const owns=tool=>window.atlasOwnsWorkspace?.(tool)??true;
   const messageKey=message=>`${message.author||''}:${message.clock||JSON.stringify(message.ids)}`;
@@ -19,7 +42,11 @@
     if(!id)return;
     const card=[...document.querySelectorAll('.image-card')].find(card=>card.dataset.id===id);
     lastRevealed=messageKey(message);
-    if(!card){toast('对应图片不在当前筛选结果中，请在所有图片中查看');return;}
+    if(!card){
+      if(!state.images.some(image=>image.id===id)){toast('对应图片已移除，无法定位');return;}
+      revealNotice('对应图片被当前筛选隐藏。','显示对应图片',()=>showHiddenSelection(message));return;
+    }
+    if(!savedFilter)document.querySelector('.selection-reveal-notice')?.remove();
     const bounds=card.getBoundingClientRect(),viewport=area.getBoundingClientRect();
     if(bounds.top>=viewport.top&&bounds.bottom<=viewport.bottom&&bounds.left>=viewport.left&&bounds.right<=viewport.right)return;
     // Scroll only the gallery, never the outer workspace or the originating window.
@@ -44,6 +71,7 @@
     }
     if(board&&!transferring)toBoard(message);
     pendingReveal=message.source==='board'&&message.ids.length?message:null;
+    if(!pendingReveal&&!savedFilter)document.querySelector('.selection-reveal-notice')?.remove();
     if(pendingReveal)requestAnimationFrame(revealGallery);
   }
   const replay=()=>{if(latest)apply(latest);};

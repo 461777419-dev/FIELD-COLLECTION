@@ -1,6 +1,6 @@
 import React, {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Save,Download,Settings2,FolderOpen,Contrast} from 'lucide-react';
+import {Save,Settings2,FolderOpen,Contrast} from 'lucide-react';
 import type {Board,Element} from '../types';
 import {createNewBoard} from '../utils/canvasUtils';
 import type {CanvasViewportStore} from '../utils/viewport-store';
@@ -10,6 +10,7 @@ import {durableAtlasValue} from '../utils/atlas-document';
 import {mergeAtlasSync} from '../utils/atlas-sync';
 import {createCanvasNavigatorModel,fitCanvasViewport} from '../utils/canvasNavigator';
 import {AtlasSelectionTools} from './AtlasSelectionTools';
+import {BoardProductivity} from './BoardProductivity';
 
 interface Props {
   dirty:boolean; boards: Board[]; activeBoardId:string; elements:Element[]; selectedIds:string[];
@@ -38,6 +39,21 @@ export function AtlasBoard(props:Props) {
   const [syncError,setSyncError]=useState(false);
   const syncRef=useRef<()=>Promise<void>>(async()=>{});
   const linksRef=useRef(links);linksRef.current=links;
+  const openDirectory=async()=>{
+    try{
+      const link=linksRef.current.find(item=>item.boardId===latest.current.activeBoardId);
+      if(!link)throw Error('当前画板尚未关联本地目录，请等待素材同步完成后重试');
+      const response=await fetch('/api/folders/'+encodeURIComponent(link.folderId)+'/open',{method:'POST'});
+      if(!response.ok)throw Error((await response.json()).error||'无法打开目录');
+      setStatus('已打开当前画板目录：'+link.directory);
+    }catch(error){setStatus('打开目录失败：'+String(error));}
+  };
+  useEffect(()=>{
+    if(!integrated)return;
+    const open=()=>void openDirectory();
+    window.addEventListener('atlas:open-board-directory',open);
+    return()=>window.removeEventListener('atlas:open-board-directory',open);
+  },[integrated]);
   const baseline = useRef<Board[] | null>(null);
   const sourcePoint=useRef<{x:number;y:number}|null>(null);
   const takeSnapshot=async()=>{
@@ -243,13 +259,14 @@ export function AtlasBoard(props:Props) {
     }catch(error){setStatus(String(error));}finally{setBusy(false);}
   };
   const actions = <div className="doro-actions" role="toolbar" aria-label="图集画板操作">
+      <BoardProductivity onExportPng={()=>void exportImage()} boards={props.boards} activeBoardId={props.activeBoardId} selectedIds={props.selectedIds} setBoards={props.setBoards} setActiveBoardId={props.setActiveBoardId} setSelectedIds={props.setSelectedIds} viewportStore={props.viewportStore} disabled={!ready||busy||suspended}/>
       <AtlasSelectionTools elements={props.elements} selectedIds={props.selectedIds} activeBoardId={props.activeBoardId} setSelectedIds={props.setSelectedIds} onRevealSelection={props.onRevealSelection} ready={ready} suspended={suspended}/>
       {syncError&&<button onClick={()=>void autoSyncRef.current()}>重试同步</button>}
       <span className="doro-save-state" role="status" title={status}>{props.dirty ? '未保存 · '+status : status}</span>
       <button disabled={!ready||busy||suspended||!props.elements.length} onClick={props.onGrayscale} title="有选区时切换选中内容的去色；没有选区时切换整张画板。Ctrl+Z 撤销，原图不变。"><Contrast size={15}/>{props.elements.length>0&&props.elements.filter(element=>!element.isLocked&&(!props.selectedIds.length||props.selectedIds.includes(element.id))).every(element=>element.grayscale)?'恢复色彩':'一键去色'}</button>
-      <button disabled={!ready||busy||suspended} onClick={async()=>{try{const link=linksRef.current.find(item=>item.boardId===props.activeBoardId);if(!link)throw Error('请先同步目录');const r=await fetch('/api/folders/'+link.folderId+'/open',{method:'POST'});if(!r.ok)throw Error((await r.json()).error);}catch(error){setStatus(String(error));}}} title={links.find(item=>item.boardId===props.activeBoardId)?.directory||'打开对应的本地文件夹'}><FolderOpen size={15}/>本地目录</button>
+      <button disabled={!ready||busy||suspended} onClick={openDirectory} title={links.find(item=>item.boardId===props.activeBoardId)?.directory||'打开对应的本地文件夹'}><FolderOpen size={15}/>本地目录</button>
       <button className="atlas-save" disabled={!ready||busy||suspended} onClick={save}><Save size={15}/>保存画板</button>
-      <button disabled={!ready||busy||!props.elements.length} onClick={()=>exportImage()}><Download size={15}/>导出 PNG</button>
+
     </div>;
   const host = window.parent !== window ? window.parent.document.getElementById('boardActionsHost') : null;
   return <>

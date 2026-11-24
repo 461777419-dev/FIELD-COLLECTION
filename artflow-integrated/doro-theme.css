@@ -112,3 +112,5 @@ html.doro-board [data-bp-ui-navigator] {display:none !important;}
 .doro-board [role="menu"] {border-radius:14px;padding:6px;}
 .doro-board [role="menu"] button {border-radius:8px;}
 .doro-board [data-bp-tool-menu] {border-color:#eadce5;border-radius:20px!important;box-shadow:0 6px 20px #765b701a;}
+.doro-board [data-bp-tool-menu] input {accent-color:#a56b91;}
+.doro-board [data-bp-tool-menu] button {transition:background-color .12s ease;}

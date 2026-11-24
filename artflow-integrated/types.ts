@@ -1,5 +1,5 @@
 
-export type Tool = 'select' | 'pan' | 'draw' | 'erase' | 'rectangle' | 'circle' | 'triangle' | 'text' | 'arrow' | 'highlighter' | 'lasso' | 'line' | 'frame';
+export type Tool = 'select' | 'pan' | 'draw' | 'erase' | 'rectangle' | 'circle' | 'triangle' | 'text' | 'arrow' | 'lasso' | 'lasso-fill' | 'line' | 'frame';
 
 export type WheelAction = 'zoom' | 'pan';
 
@@ -12,6 +12,13 @@ export interface Point {
   y: number;
 }
 
+export interface ErasureStroke {
+  points: Point[];
+  radius: number;
+  bounds: Rect;
+  gestureId: string;
+}
+
 interface CanvasElementBase {
   id: string;
   x: number;
@@ -22,6 +29,8 @@ interface CanvasElementBase {
   /** Reversible grayscale appearance; original media bytes stay unchanged. */
   grayscale?: boolean;
   parentId?: string;
+  /** Local, pre-rotation erasure strokes; reference bounds keep holes attached during transforms. */
+  erasures?: ErasureStroke[];
   /** Persisted Project Document v2 associates media locators with this id; renderer compatibility fields remain during Phase 1b. */
   assetId?: string;
   /** R24 bounded, canonical labels persisted as ordinary Element metadata. */
@@ -72,6 +81,8 @@ export interface AudioElement extends CanvasElementBase {
 export interface PathElement extends CanvasElementBase {
   type: 'path';
   points: Point[];
+  closed?: boolean;
+  fillColor?: string;
   strokeColor: string;
   strokeWidth: number;
   opacity?: number;

@@ -101,7 +101,7 @@ export const useKeyboardShortcuts = ({
             }
 
             // Shift 临时橡皮擦
-            if (e.key === 'Shift' && !e.repeat && (activeTool === 'draw' || activeTool === 'highlighter')) {
+            if (e.key === 'Shift' && !e.repeat && activeTool === 'draw') {
                 shiftEraseOriginalTool.current = activeTool;
                 setActiveTool('erase');
                 return;

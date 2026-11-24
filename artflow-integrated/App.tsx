@@ -1,5 +1,5 @@
 import { AtlasBoard } from './components/AtlasBoard';
-import {moveImagesBetweenBoards,movableBoardImages} from './utils/board-image-transfer';
+import {moveImagesBetweenBoards,movableBoardImages,boardOperationBlocker} from './utils/board-image-transfer';
 import { linkedSelectionViewport } from './utils/atlas-selection';
 import { saveAtlasDocument } from './utils/atlas-document';
 import './doro-theme.css';
@@ -19,6 +19,10 @@ import { CanvasSettings } from './components/CanvasSettings';
 import { LayerPanel } from './components/LayerPanel';
 import { BoardPanel } from './components/BoardPanel';
 import { ContextMenu } from './components/ContextMenu';
+import { EraserSettings } from './components/EraserSettings';
+import { DrawingSettings } from './components/DrawingSettings';
+import { BoardAppearance } from './components/BoardAppearance';
+import { SlidePresentation } from './components/SlidePresentation';
 import { MainCanvas } from './components/MainCanvas';
 import { WorkspaceWallpaper, WorkspaceWallpaperSwitch } from './builtin-plugins/ui-skin-picker/WorkspaceWallpaper';
 import { WindowChrome } from './components/WindowChrome';
@@ -263,7 +267,7 @@ const App: React.FC = () => {
     } = useFileSystem();
 
     const [activeTool, setActiveTool] = useState<Tool>('select');
-    const [drawingOptions, setDrawingOptions] = useState({ strokeColor: location.pathname.startsWith('/board/') ? '#a56b91' : '#FFFFFF', strokeWidth: 5, opacity: 1 });
+    const [drawingOptions, setDrawingOptions] = useState({ strokeColor: location.pathname.startsWith('/board/') ? '#a56b91' : '#FFFFFF', strokeWidth: 5, opacity: 1, eraserSize: 20, eraserMode: 'area' as 'area'|'object' });
     const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
     useEffect(() => {
         if (activeTool !== 'select' || selectedElementIds.length !== 1) return;
@@ -301,6 +305,7 @@ const App: React.FC = () => {
     const [requestedSettingsSectionId, setRequestedSettingsSectionId] = useState<string | null>(null);
     // 悬浮扩展面板宿主（主题工作台 / 插件管理）：非模态、可拖拽，背景界面实时可见。
     const [isPanelHostOpen, setIsPanelHostOpen] = useState(false);
+    const [isBoardAppearanceOpen,setIsBoardAppearanceOpen]=useState(false);
     const [panelHostId, setPanelHostId] = useState<string | null>(null);
     // —— 工作区布局（userData/config/workspace.json）：面板开合跨重启保持 ——
     // 只收录"常驻面板"。命令面板 / 右键菜单 / 标签编辑器这类**交互中才存在**的浮层刻意不入卷：
@@ -324,9 +329,35 @@ const App: React.FC = () => {
         { isOpen: false, tab: 'layers' },
         isSidePanelState,
     );
+    const [compactPanels, setCompactPanels] = useState(() => window.matchMedia('(max-width: 1100px)').matches);
+    const previousBoardPanel = useRef(isBoardPanelOpen);
+    useEffect(() => {
+        const media = window.matchMedia('(max-width: 1100px)');
+        const resize = () => {
+            setCompactPanels(media.matches);
+            if (media.matches) {
+                setIsBoardPanelOpen(false);
+                setSidePanel(previous => ({...previous, isOpen:false}));
+            }
+        };
+        if (media.matches) resize();
+        media.addEventListener('change', resize);
+        return () => media.removeEventListener('change', resize);
+    }, [setIsBoardPanelOpen, setSidePanel]);
+    useEffect(() => {
+        if (compactPanels && isBoardPanelOpen && sidePanel.isOpen) {
+            if (!previousBoardPanel.current) setSidePanel(previous => ({...previous,isOpen:false}));
+            else setIsBoardPanelOpen(false);
+        }
+        previousBoardPanel.current = isBoardPanelOpen;
+    }, [compactPanels, isBoardPanelOpen, sidePanel.isOpen, setIsBoardPanelOpen, setSidePanel]);
+    const undoBlocker = boardOperationBlocker(boards, activeBoardId);
     const [croppingState, setCroppingState] = useState<{ elementId: string; originalElement: ImageElement; cropBox: Rect } | null>(null);
     const [alignmentGuides, setAlignmentGuides] = useState<Guide[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string | null } | null>(null);
+    const [eraserMenu,setEraserMenu]=useState<{x:number;y:number}|null>(null);
+    const [drawingMenu,setDrawingMenu]=useState<{x:number;y:number}|null>(null);
+    useEffect(()=>{setEraserMenu(null);setDrawingMenu(null);},[activeTool]);
     const [editingElement, setEditingElement] = useState<{ id: string; text: string; } | null>(null);
     const [lassoPath, setLassoPath] = useState<Point[] | null>(null);
     const [aiRotationState, setAiRotationState] = useState<AIRotationState | null>(null);
@@ -826,6 +857,10 @@ const App: React.FC = () => {
     });
 
     const handleOpenProjectClick = async () => {
+        if(location.pathname.startsWith('/board/')){
+            window.dispatchEvent(new Event('atlas:open-board-directory'));
+            return;
+        }
         setIsLoading(true);
         setLastWorkspaceActivity({ tone: 'working', message: 'Opening workspace…' });
         try {
@@ -1186,12 +1221,19 @@ const App: React.FC = () => {
         if (files.length > 0) handleAddFiles(files, dropPoint);
     }, [handleAddFiles, getCanvasPoint]);
 
+    const openCanvasMenu = (x:number,y:number,elementId:string|null) => {
+        setContextMenu(null);
+        setDrawingMenu(null);
+        if(activeTool==='erase'){setEraserMenu({x,y});return;}
+        setEraserMenu(null);
+        if(['draw','lasso-fill'].includes(activeTool)){setDrawingMenu({x,y});return;}
+        setContextMenu({x,y,elementId});
+    };
     const handleContextMenu = (e: React.MouseEvent<SVGSVGElement>) => {
         e.preventDefault();
-        setContextMenu(null);
         const target = e.target as SVGElement;
         const elementId = target.closest('[data-id]')?.getAttribute('data-id');
-        setContextMenu({ x: e.clientX, y: e.clientY, elementId: elementId || null });
+        openCanvasMenu(e.clientX,e.clientY,elementId||null);
     };
 
     useEffect(() => {
@@ -1309,9 +1351,15 @@ const App: React.FC = () => {
     const appearancePanel = pluginPanels.find(panel => panel.value.quickEntry === 'appearance');
     // 主题工作台作为悬浮面板打开（非模态、可拖拽、背景界面实时可见），而不是塞进带遮罩的设置模态。
     const openAppearanceStudio = () => {
+        if(location.pathname.startsWith('/board/')){setIsSettingsPanelOpen(false);setIsBoardAppearanceOpen(true);return;}
         setPanelHostId(appearancePanel?.id ?? 'builtin.panel-skin-picker');
         setIsPanelHostOpen(true);
     };
+    useEffect(()=>{
+        const reveal=()=>{setIsBoardPanelOpen(false);setSidePanel({isOpen:true,tab:'frames'});};
+        window.addEventListener('atlas:presentation-imported',reveal);
+        return()=>window.removeEventListener('atlas:presentation-imported',reveal);
+    },[setSidePanel,setIsBoardPanelOpen]);
     workspaceCommandActionsRef.current = {
         fitCanvas: handleFitCanvas,
         canFitCanvas: () => {
@@ -1650,6 +1698,7 @@ const App: React.FC = () => {
         },
         topbar: {
             t,
+            onImportPresentation: (files:File[]) => {void handleAddFiles(files);},
             isBoardPanelOpen,
             setIsBoardPanelOpen,
             handleStartPresentation,
@@ -1662,9 +1711,9 @@ const App: React.FC = () => {
             pluginPanelCount,
             // 左上角扩展入口：直达设置里的「插件与扩展」section（不再打开独立目录页）。
             onOpenPluginPanels: () => { setRequestedSettingsSectionId('builtin.settings-plugins'); setIsSettingsPanelOpen(true); },
-            appearancePanelTitle: appearancePanel ? resolvePanelText(appearancePanel.value, language).title : undefined,
+            appearancePanelTitle: location.pathname.startsWith('/board/') ? '画板外观' : appearancePanel ? resolvePanelText(appearancePanel.value, language).title : undefined,
             onOpenAppearance: openAppearanceStudio,
-            setIsSettingsPanelOpen,
+            setIsSettingsPanelOpen: (open:boolean) => {setRequestedSettingsSectionId(null);setIsSettingsPanelOpen(open);},
             onOpenProject: handleOpenProjectClick,
             onSaveProject: handleSaveProjectClick,
             onOpenImportJobs: handleOpenImportJobs,
@@ -1683,12 +1732,14 @@ const App: React.FC = () => {
             onRenameBoard: handleRenameBoard,
             onDuplicateBoard: handleDuplicateBoard,
             onDeleteBoard: handleDeleteBoard,
-            generateBoardThumbnail: (els) => generateBoardThumbnail(els, activeBoard?.canvasBackgroundColor ?? DEFAULT_CANVAS_BACKGROUND),
+            generateBoardThumbnail: (els, background) => generateBoardThumbnail(els, background ?? DEFAULT_CANVAS_BACKGROUND),
         },
         toolbar: {
             t,
             activeTool,
             setActiveTool: handleSetActiveTool,
+            onOpenEraserSettings: (x,y) => {setContextMenu(null);setDrawingMenu(null);setEraserMenu({x,y});},
+            onOpenDrawingSettings: (x,y) => {setContextMenu(null);setEraserMenu(null);setDrawingMenu({x,y});},
             drawingOptions,
             setDrawingOptions: (options: typeof drawingOptions) => {
                 setDrawingOptions(options);
@@ -1705,6 +1756,8 @@ const App: React.FC = () => {
             onRedo: handleRedo,
             canUndo,
             canRedo,
+            undoBlockedReason: undoBlocker?.message,
+            onResolveUndo: undoBlocker?.boardId ? () => handleSetActiveBoardId(undoBlocker.boardId!) : undefined,
             position: toolbarPosition,
         },
         layer: {
@@ -1905,7 +1958,7 @@ const App: React.FC = () => {
                 handleMouseLeave={handleCanvasMouseLeave}
                 handleWheel={handleWheel}
                 handleContextMenu={handleContextMenu}
-                showCanvasMenu={(x, y, elementId) => setContextMenu({ x, y, elementId })}
+                showCanvasMenu={openCanvasMenu}
                 dismissCanvasMenu={() => setContextMenu(null)}
                 windowPlatform={windowPlatform}
                 activeTool={activeTool}
@@ -1957,7 +2010,10 @@ const App: React.FC = () => {
             />
             
             <WorkspaceWidgetHost kernel={pluginKernel} placement="prompt" />
-            <WorkspaceWidgetHost kernel={pluginKernel} placement="presentation" />
+            {location.pathname.startsWith('/board/')&&presentationState?.isActive&&frames[presentationState.currentFrameIndex]
+                ? <SlidePresentation frame={frames[presentationState.currentFrameIndex]} elements={elements} index={presentationState.currentFrameIndex} total={frames.length} onNext={()=>handleNavigatePresentation('next')} onPrev={()=>handleNavigatePresentation('prev')} onExit={handleExitPresentation} onKeep={notes=>commitAction(previous=>[...previous,...notes])}/>
+                : <WorkspaceWidgetHost kernel={pluginKernel} placement="presentation" />}
+            {isBoardAppearanceOpen && <BoardAppearance color={canvasBackgroundColor||''} onColor={value=>updateActiveBoard(board=>({...board,canvasBackgroundColor:value||DEFAULT_CANVAS_BACKGROUND}))} grid={gridVisible} onGrid={setGridVisible} onClose={()=>setIsBoardAppearanceOpen(false)}/>}
             {contextMenu && (
                 <ContextMenu
                     kernel={pluginKernel}
@@ -1983,6 +2039,8 @@ const App: React.FC = () => {
                     onClose={() => setContextMenu(null)}
                 />
             )}
+            {eraserMenu && <EraserSettings x={eraserMenu.x} y={eraserMenu.y} size={drawingOptions.eraserSize} mode={drawingOptions.eraserMode} onSize={eraserSize=>setDrawingOptions(previous=>({...previous,eraserSize}))} onMode={eraserMode=>setDrawingOptions(previous=>({...previous,eraserMode}))} onClose={()=>setEraserMenu(null)}/>}
+            {drawingMenu && <DrawingSettings x={drawingMenu.x} y={drawingMenu.y} fill={activeTool==='lasso-fill'} options={drawingOptions} onChange={options=>setDrawingOptions(previous=>({...previous,...options}))} onClose={()=>setDrawingMenu(null)}/>}
             {isCloseConfirmOpen && (
                 <div
                     data-bp-ui-scrim="" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"

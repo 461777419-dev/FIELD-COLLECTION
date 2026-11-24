@@ -11,7 +11,7 @@ import { SectionBlock, SettingsRow, Segmented } from '../../plugin-runtime/setti
 import { listAvailableLanguages } from '../../utils/language-store';
 import { buildShortcutRegistry, findShortcutConflicts, bindingIdentity, type ShortcutRegistryEntry } from '../../plugin-runtime/shortcut-arbitration';
 import { resolveCommandText } from '../../plugin-runtime/commands';
-import { ACCEPTED_FILE_TYPES_STRING } from '../../utils/formatDetector';
+import {DEFAULT_CANVAS_BACKGROUND} from '../../plugin-runtime/ui-theme-settings';
 import { HOST_PLATFORM_SERVICE, type HostPlatformService } from '../../plugin-runtime/host-platform';
 import type { Hotkey, PresentationHotkeys, WheelAction } from '../../types';
 
@@ -183,9 +183,10 @@ const CanvasSection: React.FC<SettingsSectionProps> = ({ kernel, language }) => 
   const bridge = useBridge(kernel).canvas;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const zho = language === 'zho';
+  const integrated=location.pathname.startsWith('/board/');
   return (
     <SectionBlock title={zho ? '当前画板背景' : 'Current board background'}>
-      <p className="text-xs leading-5 text-[var(--bp-ui-muted)]">{zho ? '仅修改当前画板，优先于主题的工作区背景。主题壁纸与默认点阵请到主题工作台设置。' : 'Only affects this board and overrides the theme workspace background. Theme wallpapers and default dots are in Theme Studio.'}</p>
+      <p className="text-xs leading-5 text-[var(--bp-ui-muted)]">{integrated?'仅修改当前画板并随画板保存；快速配色使用顶部调色盘，网格在「视图与网格」调整。':zho ? '仅修改当前画板，优先于主题的工作区背景。主题壁纸与默认点阵请到主题工作台设置。' : 'Only affects this board and overrides the theme workspace background. Theme wallpapers and default dots are in Theme Studio.'}</p>
       <SettingsRow label={zho ? '背景颜色' : 'Background Color'}>
         <div className="relative h-7 w-9 overflow-hidden rounded border border-white/15" style={{ backgroundColor: bridge.canvasBackgroundColor.startsWith('url') ? '#111827' : bridge.canvasBackgroundColor }}>
           <input type="color" value={bridge.canvasBackgroundColor.startsWith('url') ? '#111827' : bridge.canvasBackgroundColor} onChange={e => bridge.onCanvasBackgroundColorChange(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
@@ -201,13 +202,14 @@ const CanvasSection: React.FC<SettingsSectionProps> = ({ kernel, language }) => 
               e.target.value = '';
             }
           }}
-          accept={ACCEPTED_FILE_TYPES_STRING}
+          accept="image/*,.psd,.psb,.tif,.tiff,.tga"
           className="hidden"
         />
         <button onClick={() => fileInputRef.current?.click()} className="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20">
           {zho ? '上传' : 'Upload'}
         </button>
       </SettingsRow>
+      {integrated&&<button onClick={()=>bridge.onCanvasBackgroundColorChange(DEFAULT_CANVAS_BACKGROUND)} className="rounded-full border border-[var(--ui-border)] px-3 py-1.5 text-xs">恢复默认背景</button>}
     </SectionBlock>
   );
 };

@@ -1,16 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Tool } from '../types';
 import { ACCEPTED_FILE_TYPES_STRING } from '../utils/formatDetector';
 import { BpIcon } from './BpIcon';
+import {ToolSettingsPopover} from './ToolSettingsPopover';
 
 interface ToolbarProps {
     // Updated t signature to match useSettings hook for better type compatibility
     t: (key: string, ...args: any[]) => any;
     activeTool: Tool;
     setActiveTool: (tool: Tool) => void;
-    drawingOptions: { strokeColor: string; strokeWidth: number; opacity: number };
-    setDrawingOptions: (options: { strokeColor: string; strokeWidth: number; opacity: number }) => void;
+    drawingOptions: { strokeColor: string; strokeWidth: number; opacity: number; eraserSize?: number; eraserMode?: 'area'|'object' };
+    setDrawingOptions: (options: { strokeColor: string; strokeWidth: number; opacity: number; eraserSize?: number; eraserMode?: 'area'|'object' }) => void;
+    onOpenEraserSettings?: (x:number,y:number)=>void;
+    onOpenDrawingSettings?: (x:number,y:number)=>void;
     onUpload: (files: File[]) => void;
     isCropping: boolean;
     onConfirmCrop: () => void;
@@ -19,6 +22,8 @@ interface ToolbarProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    undoBlockedReason?: string;
+    onResolveUndo?: () => void;
     position: 'left' | 'right';
 }
 
@@ -28,98 +33,56 @@ const ToolButton: React.FC<{
     isActive?: boolean;
     onClick: () => void;
     disabled?: boolean;
+    onContextMenu?: React.MouseEventHandler<HTMLButtonElement>;
+    hasOptions?: boolean;
+    expanded?: boolean;
     className?: string;
-}> = ({ label, icon, isActive = false, onClick, disabled = false, className = '' }) => (
+}> = ({ label, icon, isActive = false, onClick, disabled = false, className = '',onContextMenu,hasOptions,expanded }) => (
     <button
         onClick={onClick}
+        onContextMenu={onContextMenu}
         aria-label={label}
         data-bp-tool-button=""
         aria-pressed={isActive}
+        aria-haspopup={hasOptions?'dialog':undefined}
+        aria-expanded={expanded}
         title={label}
         disabled={disabled}
         style={isActive ? { backgroundColor: 'var(--bp-accent-soft)', boxShadow: 'inset 2px 0 0 var(--bp-accent)' } : undefined}
-        className={`w-10 h-10 flex items-center justify-center rounded-[10px] transition-colors text-[var(--ui-text)] ${
+        className={`relative w-10 h-10 flex items-center justify-center rounded-[10px] transition-colors text-[var(--ui-text)] ${
             isActive
                 ? 'hover:brightness-110'
                 : 'hover:bg-[var(--ui-hover)]'
         } disabled:text-[var(--ui-text)]/40 disabled:hover:bg-transparent disabled:cursor-not-allowed ${className}`}
     >
         {icon}
+        {hasOptions&&<span aria-hidden="true" className="absolute bottom-1 right-1 h-0 w-0 border-l-[3px] border-r-[3px] border-t-[4px] border-l-transparent border-r-transparent border-t-current opacity-70"/>}
     </button>
 );
 
 
 const ToolGroupButton: React.FC<{
-    activeTool: Tool;
-    setActiveTool: (tool: Tool) => void;
-    tools: { id: Tool; label: string; icon: React.ReactNode }[];
-    groupIcon: React.ReactNode;
-    groupLabel: string;
-    position: 'left' | 'right';
-}> = ({ activeTool, setActiveTool, tools, groupIcon, groupLabel, position }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [menuPosition, setMenuPosition] = useState({left: 0, top: 0});
-
-    const activeToolInGroup = tools.find(t => t.id === activeTool);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleToolSelect = (toolId: Tool) => {
-        setActiveTool(toolId);
-        setIsOpen(false);
+    activeTool: Tool; setActiveTool:(tool:Tool)=>void;
+    tools:{id:Tool;label:string;icon:React.ReactNode}[];
+    groupIcon:React.ReactNode; groupLabel:string; position:'left'|'right';
+    onSettings?:(x:number,y:number)=>void;
+}> = ({activeTool,setActiveTool,tools,groupIcon,groupLabel,position,onSettings}) => {
+    const [isOpen,setIsOpen]=useState(false);
+    const wrapperRef=useRef<HTMLDivElement>(null);
+    const [menuPosition,setMenuPosition]=useState({left:0,top:0});
+    const activeToolInGroup=tools.find(tool=>tool.id===activeTool);
+    const toggleMenu=()=>{
+        const rect=wrapperRef.current?.getBoundingClientRect();
+        if(rect)setMenuPosition({left:position==='left'?rect.right+8:rect.left-264,top:rect.top});
+        setIsOpen(previous=>!previous);
     };
-
-    const toggleMenu = () => {
-        const rect = wrapperRef.current?.getBoundingClientRect();
-        if (rect) setMenuPosition({left: Math.max(8, Math.min(window.innerWidth - 58, position === 'left' ? rect.right + 8 : rect.left - 58)), top: Math.max(8, Math.min(rect.top, window.innerHeight - tools.length * 44 - 16))});
-        setIsOpen(prev => !prev);
-    };
-
-    useEffect(() => {
-        if (!isOpen) return;
-        const close = () => setIsOpen(false);
-        const key = (event: KeyboardEvent) => {if (event.key === 'Escape') close();};
-        const scroll = (event: Event) => {if (!menuRef.current?.contains(event.target as Node)) close();};
-        window.addEventListener('resize', close);document.addEventListener('scroll', scroll, true);document.addEventListener('keydown', key);
-        return () => {window.removeEventListener('resize', close);document.removeEventListener('scroll', scroll, true);document.removeEventListener('keydown', key);};
-    }, [isOpen]);
-
-    return (
-        <div className="relative flex-shrink-0" ref={wrapperRef}>
-            <ToolButton
-                label={activeToolInGroup ? activeToolInGroup.label : groupLabel}
-                icon={activeToolInGroup ? activeToolInGroup.icon : groupIcon}
-                isActive={!!activeToolInGroup}
-                onClick={toggleMenu}
-            />
-            {isOpen && createPortal(
-                <div ref={menuRef} data-bp-tool-menu="" role="group" aria-label={groupLabel} style={{ position:'fixed', ...menuPosition, zIndex:60, maxHeight:'calc(100vh - 16px)', overflowY:'auto', backgroundColor: 'var(--ui-bg-color, #fff)' }} className="flex flex-col gap-1 rounded-xl border border-[var(--ui-border)] p-1">
-                    {tools.map(tool => (
-                        <ToolButton
-                            key={tool.id}
-                            label={tool.label}
-                            icon={tool.icon}
-                            isActive={activeTool === tool.id}
-                            onClick={() => handleToolSelect(tool.id)}
-                            className="bg-white/10"
-                        />
-                    ))}
-                </div>, document.getElementById('root') || document.body
-            )}
-        </div>
-    );
+    return <div className="relative flex-shrink-0" ref={wrapperRef}>
+        <ToolButton label={activeToolInGroup?.label||groupLabel} icon={activeToolInGroup?.icon||groupIcon} isActive={!!activeToolInGroup} onClick={toggleMenu} hasOptions expanded={isOpen} onContextMenu={onSettings?event=>{event.preventDefault();setIsOpen(false);onSettings(event.clientX,event.clientY);}:undefined}/>
+        {isOpen&&createPortal(<ToolSettingsPopover x={menuPosition.left} y={menuPosition.top} title={groupLabel} anchorRef={wrapperRef} onClose={()=>setIsOpen(false)}>
+            <div className="flex flex-col gap-1">{tools.map(tool=><button key={tool.id} aria-pressed={activeTool===tool.id} onClick={()=>{setActiveTool(tool.id);setIsOpen(false);}} className="flex items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-[var(--ui-hover)]" style={activeTool===tool.id?{background:'var(--bp-accent-soft)'}:undefined}>{tool.icon}<span>{tool.label}</span><span className="ml-auto">{activeTool===tool.id?'✓':''}</span></button>)}</div>
+        </ToolSettingsPopover>,document.getElementById('root')||document.body)}
+    </div>;
 };
-
 
 export const Toolbar: React.FC<ToolbarProps> = ({
     t,
@@ -127,6 +90,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setActiveTool,
     drawingOptions,
     setDrawingOptions,
+    onOpenEraserSettings,
+    onOpenDrawingSettings,
     onUpload,
     isCropping,
     onConfirmCrop,
@@ -135,6 +100,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onRedo,
     canUndo,
     canRedo,
+    undoBlockedReason,
+    onResolveUndo,
     position,
 }) => {
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -167,7 +134,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
 
     const mainTools: { id: Tool; label: string; icon: React.ReactNode }[] = [
-        { id: 'select', label: t('toolbar.select'), icon: <BpIcon name="tool.select" size={24} /> },
         { id: 'pan', label: t('toolbar.pan'), icon: <BpIcon name="tool.pan" size={24} /> },
     ];
 
@@ -181,13 +147,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
      const drawingTools: { id: Tool; label: string; icon: React.ReactNode }[] = [
         { id: 'draw', label: t('toolbar.draw'), icon: <BpIcon name="tool.pen" size={24} /> },
-        { id: 'highlighter', label: t('toolbar.highlighter'), icon: <BpIcon name="tool.highlighter" size={24} />},
-        { id: 'lasso', label: t('toolbar.lasso'), icon: <BpIcon name="tool.lasso" size={24} />},
-        { id: 'erase', label: t('toolbar.erase'), icon: <BpIcon name="tool.erase" size={24} /> },
+        { id: 'lasso-fill', label: '套索填色', icon: <BpIcon name="tool.lasso" size={24} />},
     ];
 
     const miscTools: { id: Tool; label: string; icon: React.ReactNode }[] = [
-        { id: 'frame', label: t('toolbar.frame'), icon: <BpIcon name="tool.frame" size={24} /> },
+        { id: 'erase', label: t('toolbar.erase'), icon: <BpIcon name="tool.erase" size={24} /> },
         { id: 'text', label: t('toolbar.text'), icon: <BpIcon name="tool.text" size={24} /> },
     ];
 
@@ -197,6 +161,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             data-bp-ui-floating-shell="" className={`absolute top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1.5 rounded-[18px] border border-[var(--ui-border)] px-2 py-3 ${positionClasses}`}
         >
             <div className="flex flex-col items-center gap-2 flex-grow">
+                <ToolGroupButton activeTool={activeTool} setActiveTool={setActiveTool} tools={[{id:'select',label:'框选',icon:<BpIcon name="tool.select" size={24}/>},{id:'lasso',label:'套索选区',icon:<BpIcon name="tool.lasso" size={24}/>}]} groupLabel="选择工具" groupIcon={<BpIcon name="tool.select" size={24}/>} position={position}/>
                  {mainTools.map(tool => (
                     <ToolButton key={tool.id} label={tool.label} icon={tool.icon} isActive={activeTool === tool.id} onClick={() => setActiveTool(tool.id)} />
                 ))}
@@ -214,16 +179,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     activeTool={activeTool}
                     setActiveTool={setActiveTool}
                     tools={drawingTools}
+                    onSettings={onOpenDrawingSettings}
                     groupLabel={t('toolbar.drawingTools')}
                     groupIcon={<BpIcon name="tool.pen-group" size={24} />}
                     position={position}
                 />
 
                 {miscTools.map(tool => (
-                    <ToolButton key={tool.id} label={tool.label} icon={tool.icon} isActive={activeTool === tool.id} onClick={() => setActiveTool(tool.id)} />
+                    <ToolButton key={tool.id} label={tool.label} icon={tool.icon} isActive={activeTool === tool.id} onClick={() => setActiveTool(tool.id)} hasOptions={tool.id==='erase'} onContextMenu={tool.id==='erase'?event=>{event.preventDefault();onOpenEraserSettings?.(event.clientX,event.clientY);}:undefined} />
                 ))}
 
                 <div className="w-10 h-px bg-[var(--ui-border)]"></div>
+                {activeTool === 'erase' ? <div className="flex flex-col items-center gap-2" title="右键调整橡皮大小和模式；图片与锁定内容保留">
+                    <select aria-label="擦除模式" className="w-12 bg-transparent text-[10px]" value={drawingOptions.eraserMode??'area'} onChange={event=>setDrawingOptions({...drawingOptions,eraserMode:event.target.value as 'area'|'object'})}><option value="area">范围</option><option value="object">整项</option></select>
+                    <input type="range" min="12" max="99" step="1" value={drawingOptions.eraserSize ?? 20} aria-label="橡皮范围" title="橡皮范围（屏幕像素）" onChange={e=>setDrawingOptions({...drawingOptions,eraserSize:Number(e.target.value)})} className="w-10 cursor-pointer"/>
+                    <span className="text-xs">{drawingOptions.eraserSize ?? 20}px</span>
+                </div> : <>
                 <div className="relative w-8 h-8">
                     <div
                         className="w-full h-full rounded-full border border-[var(--ui-border)]"
@@ -253,6 +224,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     className="w-10 cursor-pointer"
                 />
                 <span className="text-sm text-[var(--ui-text)] w-6 text-center">{Math.round((drawingOptions.opacity ?? 1) * 100)}%</span>
+                </>}
                 <div className="w-10 h-px bg-[var(--ui-border)]"></div>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={ACCEPTED_FILE_TYPES_STRING} multiple className="hidden" />
                 <ToolButton label={t('toolbar.upload')} onClick={handleUploadClick} icon={<BpIcon name="tool.upload" size={24} />} />
@@ -261,6 +233,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <div className="w-10 h-px bg-[var(--ui-border)]"></div>
             <ToolButton label={t('toolbar.undo')} onClick={onUndo} disabled={!canUndo} icon={<BpIcon name="tool.undo" size={24} />} />
             <ToolButton label={t('toolbar.redo')} onClick={onRedo} disabled={!canRedo} icon={<BpIcon name="tool.redo" size={24} />} />
+            {undoBlockedReason && <div role="status" className={`absolute bottom-0 ${position === 'left' ? 'left-full ml-3' : 'right-full mr-3'} w-56 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-bg-color)] p-3 text-xs leading-5 shadow-lg`}>
+                <p>{undoBlockedReason}</p>
+                {onResolveUndo && <button className="mt-2 rounded-full bg-[var(--bp-accent-soft)] px-3 py-1" onClick={onResolveUndo}>前往对应画板</button>}
+            </div>}
         </div>
     );
 };

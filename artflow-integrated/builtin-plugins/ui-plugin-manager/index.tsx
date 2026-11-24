@@ -24,6 +24,7 @@ import type { InstalledPackage } from '../../plugin-runtime/extension-package';
 import { filterPluginCatalog, isEditableMode, isInfrastructureBuiltin, needsPluginReload, sourceBucketOf, type CatalogSourceFilter, type CatalogStatusFilter, type PluginCatalogEntry } from './catalog';
 import { PackageInstaller, PackageRows } from './extension-packages';
 import { PluginDevGuide } from './dev-guide';
+import {INTEGRATED_HIDDEN_PLUGINS} from '../../utils/integrated-settings';
 
 const copyFor = (language: SettingsSectionProps['language']) => language === 'zho' ? {
   label: '插件与扩展',
@@ -61,7 +62,7 @@ const copyFor = (language: SettingsSectionProps['language']) => language === 'zh
   packageUnavailable: '当前无法读取 JSON 扩展包：',
   packageHostDisabled: '核心扩展宿主本次启动未启用。JSON 包可管理，但关联命令等能力需启用宿主并重新加载。',
   externalLoading: '正在读取外部插件…',
-  externalUnavailable: location.pathname.startsWith('/board/') ? '浏览器预览不支持安装本地外部插件；现有内置插件可用。详情：' : '当前无法读取外部插件：',
+  externalUnavailable: '当前无法读取外部插件：',
   installReloads: '安装或卸载外部插件后会自动重新加载。',
   modeSandbox: '沙箱',
   modeDeclarative: '声明式',
@@ -238,6 +239,7 @@ const budgetLabel = (budget: { maxActiveInstances?: number; maxConcurrentJobs?: 
 };
 
 const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, language }) => {
+  const integrated=typeof location!=='undefined'&&location.pathname.startsWith('/board/');
   const manager = kernel.use(PLUGIN_PROFILE_MANAGER_SERVICE) as PluginProfileManager;
   const hostPlatform = kernel.use(HOST_PLATFORM_SERVICE) as HostPlatformService;
   const packageService = kernel.has(EXTENSION_RUNTIME_SERVICE)
@@ -258,7 +260,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
   const [disabledIds, setDisabledIds] = useState<string[]>(() => readBrowserDisabledExternalPluginIds());
   // Captured in index.tsx at bootstrap; never re-derived from a changed preference on navigation.
   const appliedDisabled = readStartupDisabledExternalPluginIds();
-  const copy = copyFor(language);
+  const copy = {...copyFor(language),...(integrated?{heading:'功能扩展',intro:'列出整合版可用的功能和本地组件。开关保存后重新加载生效；关闭功能不会删除已有画板内容。外部宿主安装与旧主题入口已精简。'}:{})};
 
   // 插件名/简介按当前语言解析：manifest 的 name / description 是中文基准，
   // nameI18n / descriptionI18n 提供其它语言覆盖；第三方插件没有覆盖表时自然回落。
@@ -281,6 +283,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
   }, [manager]);
 
   useEffect(() => {
+    if(integrated){setExternalLoad({status:'ok'});return;}
     let mounted = true;
     setExternalLoad({ status: 'loading' });
     void hostPlatform.listExternalPlugins().then(result => {
@@ -293,7 +296,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
       if (mounted) setExternalLoad({ status: 'error', message: error instanceof Error ? error.message : String(error) });
     });
     return () => { mounted = false; };
-  }, [hostPlatform]);
+  }, [hostPlatform,integrated]);
 
   useEffect(() => packageService?.runtime.subscribe(() => refreshPackages(tick => tick + 1)), [packageService]);
 
@@ -393,7 +396,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
       id: entry.package.id, source: 'package' as const, name: entry.package.name,
       enabled: entry.enabled,
     })),
-  ], [snapshot.pendingProfile, activeById, externalPlugins, disabledIds, installedPackages, language]);
+  ].filter(entry=>!integrated||!INTEGRATED_HIDDEN_PLUGINS.has(entry.id)), [snapshot.pendingProfile, activeById, externalPlugins, disabledIds, installedPackages, language,integrated]);
   const filtered = filterPluginCatalog(catalog, { source, status: statusFilter, query });
   const visibleKeys = new Set(filtered.map(entry => `${entry.source}:${entry.id}`));
   // 「内置插件」与「外部插件」共用同一份 profile 插件列表，只是档位不同。
@@ -497,7 +500,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
           className="h-7 shrink-0 rounded-lg border border-white/10 bg-[var(--bp-ui-surface-strong)] px-1.5 text-[11px] text-neutral-100 focus:border-sky-300/40 focus:outline-none">
           {/* 只分两档：内置（编译进本体）/ 外部（可编辑包 + 声明式包 + JSON 扩展包）。 */}
           <option value="builtin">{copy.builtinTab} · {sourceCount('builtin')}</option>
-          <option value="external">{copy.externalTab} · {sourceCount('external')}</option>
+          <option value="external">{integrated?'本地组件':copy.externalTab} · {sourceCount('external')}</option>
         </select>
         <div className="relative min-w-[7.5rem] flex-1">
           <svg viewBox="0 0 16 16" aria-hidden className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500">
@@ -533,11 +536,11 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
           </span>
         )}
         <div className="relative flex shrink-0 items-center">
-          <button type="button" onClick={() => { void installExternal(); }}
+          {!integrated&&<button type="button" onClick={() => { void installExternal(); }}
             className="flex h-7 items-center gap-1 rounded-l-lg border border-r-0 border-white/10 bg-white/[0.07] px-2 text-[11px] text-neutral-100 hover:bg-white/10">
             <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5"><path d="M8 2.8v7M4.8 6.6 8 9.8l3.2-3.2M2.8 12.8h10.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
             <span className="whitespace-nowrap">{copy.install}</span>
-          </button>
+          </button>}
           <button type="button" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={copy.more} onClick={() => setMenuOpen(value => !value)}
             className="flex h-7 items-center rounded-r-lg border border-white/10 bg-white/[0.07] px-1.5 text-neutral-300 hover:bg-white/10 hover:text-neutral-100">
             <svg viewBox="0 0 16 16" aria-hidden className="h-3 w-3"><path d="M4 6.5 8 10.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -550,11 +553,11 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
                 <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5 shrink-0 opacity-80"><path d="M8 1.8 13.6 4.6 8 7.4 2.4 4.6Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /><path d="M2.4 8 8 10.8 13.6 8M2.4 11.2 8 14l5.6-2.8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /></svg>
                 <span className="min-w-0 truncate">{copy.packageInstall}</span>
               </button>}
-              <button role="menuitem" type="button" aria-expanded={showDevGuide} onClick={() => { setMenuOpen(false); setShowDevGuide(value => !value); }}
+              {!integrated&&<button role="menuitem" type="button" aria-expanded={showDevGuide} onClick={() => { setMenuOpen(false); setShowDevGuide(value => !value); }}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-teal-100 hover:bg-teal-300/15">
                 <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5 shrink-0 opacity-80"><path d="M3 3.4h4.2c.9 0 1.4.5 1.4 1.3v7.9c0-.7-.5-1.2-1.4-1.2H3ZM13 3.4H8.8c-.9 0-1.4.5-1.4 1.3v7.9c0-.7.5-1.2 1.4-1.2H13Z" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
                 <span className="min-w-0 truncate">{copy.devGuide}</span>
-              </button>
+              </button>}
               <button role="menuitem" type="button" onClick={() => { setMenuOpen(false); clearBuiltinOverrides(); }}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-neutral-300 hover:bg-white/[0.07]">
                 <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5 shrink-0 opacity-70"><path d="M3.4 8a4.6 4.6 0 1 0 1.6-3.5M3 3v2.4h2.4" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -572,7 +575,7 @@ const PluginManagerSettingsSection: React.FC<SettingsSectionProps> = ({ kernel, 
       {showPackageInstaller && packageService && (
         <PackageInstaller runtime={packageService.runtime} language={language} onNotice={packageFeedback}
           onClose={() => setShowPackageInstaller(false)}
-          onInstalled={() => { setShowPackageInstaller(false); setSource('package'); setStatusFilter('all'); setQuery(''); }} />
+          onInstalled={() => { setShowPackageInstaller(false); setSource('external'); setStatusFilter('all'); setQuery(''); }} />
       )}
       {showDevGuide && <PluginDevGuide language={language === 'en' ? 'en' : 'zh'} onClose={() => setShowDevGuide(false)} />}
       {snapshot.warning && (

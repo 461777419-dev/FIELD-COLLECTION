@@ -423,12 +423,38 @@ export const useFileHandlers = ({
         }
         try {
 
-        const validFiles = files.filter(isSupportedFile);
+        let validFiles = files.filter(isSupportedFile);
         if (validFiles.length === 0) {
             setError('Unsupported file format.');
             return;
         }
         setError(null);
+        const presentations=validFiles.filter(file=>/\.(pptx?|PPTX?)$/i.test(file.name));
+        if(presentations.length){
+            if(!location.pathname.startsWith('/board/')){setError('PPT 页面导入请在图集整合画板中使用');return;}
+            const targetBoard=documentState?.getSnapshot().activeBoardId;
+            const rect=getCanvasScreenRect(svgRef.current);
+            const anchor=dropPoint||(rect?getCanvasPoint(rect.left+rect.width/2,rect.top+rect.height/2):{x:0,y:0});
+            const {presentationElements}=await import('../utils/presentation-import');
+            const {uploadPresentation}=await import('../utils/presentation-upload');
+            const batch:Element[]=[];let offsetY=0;
+            setIsLoading?.(true);
+            try{
+                for(const file of presentations){
+                    const result=await uploadPresentation(file,message=>setProgressMessage?.(message));
+                    if(targetBoard&&documentState?.getSnapshot().activeBoardId!==targetBoard)throw Error('导入期间切换了画板，请回到目标画板重新导入');
+                    const added=presentationElements(file.name.replace(/\.pptx?$/i,''),result.slides,{x:anchor.x,y:anchor.y+offsetY});
+                    batch.push(...added);offsetY=added.reduce((max,el)=>'height' in el?Math.max(max,el.y+el.height-anchor.y+100):max,offsetY);
+                }
+                addElementsWithParenting(batch,true,importGroupId);
+                setSelectedElementIds(batch.filter(el=>el.type==='frame').map(el=>el.id));
+                setActiveTool('select');
+                window.dispatchEvent(new Event('atlas:presentation-imported'));
+            }catch(error){setError(error instanceof Error?error.message:'PPT 导入失败');return;}
+            finally{setIsLoading?.(false);setProgressMessage?.('');}
+            validFiles=validFiles.filter(file=>!presentations.includes(file));
+            if(!validFiles.length)return;
+        }
 
         // V3: files matching installed declarative extensions go to a managed background batch, not the legacy sync path.
         if (importExtensionFiles) {

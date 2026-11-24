@@ -10,6 +10,8 @@ import {
     getSelectableElement, getDescendants, getSelectionBounds, getCanvasScreenRect
 } from '../utils/canvasUtils';
 import { SNAP_THRESHOLD } from '../constants';
+import {eraseElements,eraserCursor,eraserDiameter} from '../utils/eraser';
+import {drawingToolCursor} from '../utils/tool-cursors';
 import { getLassoBounds, queryInteractionCandidates } from '../utils/interaction-spatial-query';
 import type { InteractionViewportIndexReader } from '../utils/interaction-spatial-query';
 import { createDragSnapGuideSnapshot } from '../utils/drag-snap-guide-index';
@@ -51,7 +53,7 @@ interface CanvasInteractionsProps {
     zoom: number;
     panOffset: Point;
     activeTool: Tool;
-    drawingOptions: { strokeColor: string; strokeWidth: number; opacity: number };
+    drawingOptions: { strokeColor: string; strokeWidth: number; opacity: number; eraserSize?: number; eraserMode?: 'area'|'object' };
     selectedElementIds: string[];
     setSelectedElementIds: (ids: string[] | ((prev: string[]) => string[])) => void;
     setElements: (updater: (prev: Element[]) => Element[], commit?: boolean) => void;
@@ -165,6 +167,8 @@ export const useCanvasInteractions = ({
         || mode === 'drawLine'
     );
     const currentDrawingElementId = useRef<string | null>(null);
+    const lastErasePoint=useRef<Point|null>(null);
+    const eraseGestureId=useRef('');
     const resizeStartInfo = useRef<{ originalElement: Element; startCanvasPoint: Point; handle: string; } | null>(null);
     const rotateStartInfo = useRef<{ originalElement: Element; center: Point; startCanvasPoint: Point; } | null>(null);
     const cropStartInfo = useRef<{ originalCropBox: Rect, startCanvasPoint: Point } | null>(null);
@@ -409,9 +413,9 @@ export const useCanvasInteractions = ({
         if (aiRotationState) return 'grab';
         if (interactionMode.current === 'pan') return 'grabbing';
         if (activeTool === 'pan') return 'grab';
-        if (['draw', 'erase', 'rectangle', 'circle', 'triangle', 'arrow', 'line', 'text', 'highlighter', 'lasso', 'frame'].includes(activeTool)) return 'crosshair';
-        return 'default';
-    }, [croppingState, aiRotationState, activeTool, interactionMode.current]);
+        if (activeTool === 'erase') return eraserCursor(drawingOptions.eraserSize);
+        return drawingToolCursor(activeTool)||'default';
+    }, [croppingState, aiRotationState, activeTool, drawingOptions.eraserSize, interactionMode.current]);
 
     /**
      * 对齐参考线发布：拖动中每帧都会算一遍，但绝大多数帧内容没变。
@@ -574,14 +578,15 @@ export const useCanvasInteractions = ({
             return;
         }
 
-        if (activeTool === 'draw' || activeTool === 'highlighter') {
+        if (activeTool === 'draw' || activeTool === 'lasso-fill') {
             interactionMode.current = 'draw';
             const newPath: PathElement = {
                 id: generateId(),
-                type: 'path', name: 'Path',
+                type: 'path', name: activeTool === 'lasso-fill' ? '套索填色' : 'Path',
                 points: [canvasStartPoint],
+                ...(activeTool === 'lasso-fill' ? {closed:true,fillColor:drawingOptions.strokeColor} : {}),
                 strokeColor: drawingOptions.strokeColor,
-                strokeWidth: drawingOptions.strokeWidth,
+                strokeWidth: activeTool === 'lasso-fill' ? 0 : drawingOptions.strokeWidth,
                 opacity: drawingOptions.opacity,
                 rotation: 0,
                 x: 0, y: 0 
@@ -646,6 +651,9 @@ export const useCanvasInteractions = ({
             setElements(prev => [...prev, newLine], false);
         } else if (activeTool === 'erase') {
             interactionMode.current = 'erase';
+            lastErasePoint.current=canvasStartPoint;
+            eraseGestureId.current=generateId();
+            setElements(previous=>eraseElements(previous,canvasStartPoint,canvasStartPoint,eraserDiameter(drawingOptions.eraserSize)/2/zoom,drawingOptions.eraserMode,eraseGestureId.current),false);
         } else if (activeTool === 'lasso') {
             interactionMode.current = 'lasso';
             latestLassoPathRef.current = [canvasStartPoint];
@@ -815,24 +823,8 @@ export const useCanvasInteractions = ({
         }
 
         if (interactionMode.current === 'erase') {
-            const eraseRadius = drawingOptions.strokeWidth / zoom;
-            const idsToDelete = new Set<string>();
-
-            elements.forEach(el => {
-                if (el.type === 'path') {
-                    for (let i = 0; i < el.points.length - 1; i++) {
-                        const distance = Math.hypot(point.x - el.points[i].x, point.y - el.points[i].y);
-                        if (distance < eraseRadius) {
-                            idsToDelete.add(el.id);
-                            return;
-                        }
-                    }
-                }
-            });
-
-            if (idsToDelete.size > 0) {
-                setElements(prev => prev.filter(el => !idsToDelete.has(el.id)), false);
-            }
+            const from=lastErasePoint.current||point;lastErasePoint.current=point;
+            setElements(previous=>eraseElements(previous,from,point,eraserDiameter(drawingOptions.eraserSize)/2/zoom,drawingOptions.eraserMode,eraseGestureId.current),false);
             return;
         }
 
@@ -1354,6 +1346,7 @@ export const useCanvasInteractions = ({
         publishAlignmentGuides([]);
         setRotateDialPoint(null);
         currentDrawingElementId.current = null;
+        lastErasePoint.current=null;
         dragSnapGuideSnapshotRef.current?.invalidate();
         dragSnapGuideSnapshotRef.current = null;
         dragMovingElementsRef.current = [];

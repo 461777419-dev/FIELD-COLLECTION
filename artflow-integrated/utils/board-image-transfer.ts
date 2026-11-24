@@ -38,6 +38,13 @@ export function moveImagesBetweenBoards(boards:Board[], sourceId:string, targetI
 }
 
 const operationIndex=(board:Board, direction:'undo'|'redo')=>board.operationHistoryIndex+(direction==='redo'?1:0);
+export function boardOperationBlocker(boards:Board[], boardId:string): {message:string; boardId?:string} | undefined {
+  const board=boards.find(item=>item.id===boardId);
+  const operation=board?.operationHistory[operationIndex(board,'undo')];
+  if(!operation?.id.startsWith(TRANSFER_PREFIX)||canReplayBoardOperation(boards,boardId,'undo'))return;
+  const partner=boards.find(item=>item.id!==boardId&&item.operationHistory.some(entry=>entry.id===operation.id));
+  return partner ? {message:`跨画板移动需同时撤销。请先在「${partner.name}」撤销后续编辑。`,boardId:partner.id} : {message:'这次移动关联的另一份历史已不存在，无法安全撤销。可从工程备份恢复。'};
+}
 export function canReplayBoardOperation(boards:Board[], boardId:string, direction:'undo'|'redo'):boolean {
   const board=boards.find(item=>item.id===boardId);
   if(!board)return false;

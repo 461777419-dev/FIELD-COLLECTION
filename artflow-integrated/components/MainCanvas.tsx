@@ -633,6 +633,13 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
     const handleCanvasDownCapture = (event: React.MouseEvent<SVGSVGElement>) => {
         if ((event.target as globalThis.Element).closest?.('[data-atlas-drag-out]')) return;
         if (event.button === 2) { windowMove.onMouseDownCapture(event); return; }
+        const target=event.target as globalThis.Element;
+        if(event.button===0&&activeTool!=='select'&&activeTool!=='text'&&!target.closest?.('input,textarea,select,[contenteditable="true"]')){
+            // Drawing/erasing must never start the browser's native text selection.
+            event.preventDefault();
+            const selection=window.getSelection();
+            if(selection?.anchorNode&&event.currentTarget.contains(selection.anchorNode))selection.removeAllRanges();
+        }
         // The second mousedown in a double-click must not start a new image
         // drag/resize; the subsequent dblclick will commit the camera once.
         if (event.button === 0 && event.detail >= 2 && activeTool === 'select'
@@ -698,9 +705,16 @@ const MainCanvasBase: React.FC<MainCanvasProps> = ({
                 点阵与对齐网格在这层外面（视口 CSS），避免 40 万像素 pattern 跟着图片一起重栅格。 */}
             <svg
                 ref={svgRef}
+                data-board-canvas="true"
                 className="relative z-10 w-full h-full block"
                 onMouseDownCapture={handleCanvasDownCapture}
                 onDoubleClick={handleCanvasDoubleClick}
+                onDoubleClickCapture={event=>{
+                    const target=event.target as globalThis.Element;
+                    if(activeTool!=='select'&&activeTool!=='text'&&!target.closest?.('input,textarea,select,[contenteditable="true"]')){
+                        event.preventDefault();event.stopPropagation();
+                    }
+                }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}

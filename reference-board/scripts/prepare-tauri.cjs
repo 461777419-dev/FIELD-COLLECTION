@@ -9,6 +9,8 @@ fs.mkdirSync(runtime, { recursive: true });
 const frontend = path.join(root, 'src-tauri', 'frontend');
 fs.mkdirSync(frontend, { recursive: true });
 const files = [
+  'ppt-import.js', 'ppt-export.ps1',
+  'board-history.js',
   'server.js', 'app-updater.js', 'update-install-helper.ps1', 'update-config.json', 'update-ui.js', 'pinterest-search.js', 'ai-providers.js', 'shared-ai.js', 'media-preview.js',
   'index.html', 'app.js', 'search-bar.js', 'improvements.js', 'app.css', 'journal.css',
   'atlas.css', 'atlas-tuning.css', 'improvements.css', 'lucide.min.js',

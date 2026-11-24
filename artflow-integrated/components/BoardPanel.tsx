@@ -1,7 +1,8 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useId } from 'react';
 import type { Board } from '../types';
 import { useTranslation } from '../utils/language-store';
+import { boardThumbnailMarkup } from '../utils/canvasUtils';
 
 interface BoardPanelProps {
     isOpen: boolean;
@@ -13,7 +14,7 @@ interface BoardPanelProps {
     onRenameBoard: (id: string, name: string) => void;
     onDuplicateBoard: (id: string) => void;
     onDeleteBoard: (id: string) => void;
-    generateBoardThumbnail: (elements: Board['elements']) => string;
+    generateBoardThumbnail: (elements: Board['elements'], background?: string) => string;
 }
 
 const BoardItem: React.FC<{
@@ -26,6 +27,8 @@ const BoardItem: React.FC<{
     onDelete: () => void;
 }> = ({ board, isActive, thumbnail, onClick, onRename, onDuplicate, onDelete }) => {
     const { t } = useTranslation();
+    const thumbnailId=useId().replace(/:/g,'');
+    const markup = useMemo(() => boardThumbnailMarkup(thumbnail).replaceAll('thumb-erase-',`thumb-${thumbnailId}-erase-`), [thumbnail,thumbnailId]);
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(board.name);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -87,7 +90,7 @@ const BoardItem: React.FC<{
             className={`group relative p-2 rounded-lg cursor-pointer transition-colors ${isActive ? 'bg-[var(--bp-accent-soft)]' : 'hover:bg-[var(--ui-hover)]'}`}
         >
             <div className={`aspect-[3/2] w-full rounded-md mb-2 overflow-hidden border-2 ${isActive ? 'border-[var(--bp-accent)]' : 'border-transparent'}`}>
-                <img src={thumbnail} alt={t('board.thumbnailAlt', board.name)} className="w-full h-full object-cover" />
+                <div role="img" aria-label={t('board.thumbnailAlt', board.name)} className="w-full h-full" dangerouslySetInnerHTML={{__html: markup}} />
             </div>
             <div className="flex items-center justify-between">
                 {isEditing ? (
@@ -156,7 +159,7 @@ export const BoardPanel: React.FC<BoardPanelProps> = ({
                         key={board.id}
                         board={board}
                         isActive={board.id === activeBoardId}
-                        thumbnail={generateBoardThumbnail(board.elements)}
+                        thumbnail={generateBoardThumbnail(board.elements, board.canvasBackgroundColor)}
                         onClick={() => onSwitchBoard(board.id)}
                         onRename={(name) => onRenameBoard(board.id, name)}
                         onDuplicate={() => onDuplicateBoard(board.id)}
