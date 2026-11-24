@@ -26,6 +26,15 @@ const board={id:'board',name:'迁移测试',canvasBackgroundColor:`url(${media})
     const broken={...entries};delete broken['assets/0'];
     await assert.rejects(importPortableProject(new File([zipSync(broken)],'missing.zip'),()=>{}),/缺少素材/);
     await assert.rejects(importPortableProject(new File([zipSync({'project.json':strToU8('{}')})],'bad.zip'),()=>{}),/不支持/);
+    const before=uploads;
+    const pack=value=>new File([zipSync({...entries,'project.json':strToU8(JSON.stringify(value))})],'invalid.zip');
+    const invalid=structuredClone(manifest);invalid.boards.push({name:'坏画板',elements:[null]});
+    await assert.rejects(importPortableProject(pack(invalid),()=>{}),/元素无效/);
+    const missing=structuredClone(manifest);missing.boards[0].elements.push({...missing.boards[0].elements[1],id:'missing',href:'portable:assets/99:image/png'});
+    await assert.rejects(importPortableProject(pack(missing),()=>{}),/缺少素材/);
+    const duplicate=structuredClone(manifest);duplicate.boards[0].elements.push({...duplicate.boards[0].elements[1]});
+    await assert.rejects(importPortableProject(pack(duplicate),()=>{}),/重复/);
+    assert.equal(uploads,before,'invalid later boards, missing later assets and duplicate IDs never upload media');
     console.log('portable project: complete media/background roundtrip, deduplication, new identities, parent links and missing-media rejection passed');
   }finally{global.fetch=realFetch;}
 })().catch(error=>{console.error(error);process.exitCode=1;});

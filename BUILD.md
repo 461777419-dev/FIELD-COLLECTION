@@ -2,7 +2,7 @@
 
 Windows x64 安装包：`Field-Collection_1.0.5_x64-setup.exe`。
 
-安装包 SHA256：`bb536c97ca7ffd3ac65f0b7c6f23d24b88b1ae0bfef5fc6aa50d7ccf5f7aa472`。
+安装包 SHA256：`1b0f6851bfdf4d1799a6ff7e43b8755e89e4750106ee9c0b1ab04d7e445cdeec`。
 
 ## 目录
 

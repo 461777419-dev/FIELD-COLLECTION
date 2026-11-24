@@ -1,4 +1,4 @@
-import React,{useState,useRef,useEffect} from 'react';
+import React,{useState,useRef,useEffect,useMemo} from 'react';
 import type {Element,FrameElement,PathElement,Point} from '../types';
 import {CanvasElement} from './CanvasElement';
 import {generateId,getElementBounds} from '../utils/canvasUtils';
@@ -17,13 +17,16 @@ export function SlidePresentation({frame,elements,index,total,onNext,onPrev,onEx
     const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();exit();}};
     window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);
   },[notes,onExit]);
-  const content=elements.filter(element=>{
+  const content=useMemo(()=>{
+    const byId=new Map(elements.map(element=>[element.id,element]));
+    return elements.filter(element=>{
     if(element.type==='frame'||element.isVisible===false)return false;
     const seen=new Set<string>();let current:Element|undefined=element;
-    while(current?.parentId){if(seen.has(current.id)||current.isVisible===false)return false;seen.add(current.id);if(current.parentId===frame.id)return true;current=elements.find(item=>item.id===current!.parentId);}
+    while(current?.parentId){if(seen.has(current.id)||current.isVisible===false)return false;seen.add(current.id);if(current.parentId===frame.id)return true;current=byId.get(current.parentId);}
     const bounds=getElementBounds(element,elements);
     return bounds.x>=frame.x&&bounds.y>=frame.y&&bounds.x+bounds.width<=frame.x+frame.width&&bounds.y+bounds.height<=frame.y+frame.height;
-  });
+    });
+  },[elements,frame]);
   return <div role="region" aria-label="幻灯片演示" className="absolute inset-0 z-[80] flex flex-col bg-black">
     <div className="min-h-0 flex-1 p-4"><svg ref={svgRef} className="h-full w-full" style={{touchAction:'none',cursor:mode==='pen'?'crosshair':mode==='laser'?'none':'default'}} onPointerDown={event=>{
       if(event.button!==0||mode==='view')return;
@@ -31,7 +34,7 @@ export function SlidePresentation({frame,elements,index,total,onNext,onPrev,onEx
       event.currentTarget.setPointerCapture(event.pointerId);
       if(mode==='laser'){setLaser(point);return;}
       const id=generateId();drawing.current=id;setNotes(previous=>[...previous,{id,type:'path',name:'演示批注',parentId:frame.id,x:0,y:0,points:[point],strokeColor:color,strokeWidth:width,opacity:1}]);
-    }} onPointerMove={event=>{const point=toPoint(event);if(!point)return;if(mode==='laser'){setLaser(point);return;}if(drawing.current)setNotes(previous=>previous.map(note=>note.id===drawing.current?{...note,points:[...note.points,point]}:note));}} onPointerUp={finish} onPointerCancel={finish} onPointerLeave={()=>{if(!drawing.current)setLaser(null);}} viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`} preserveAspectRatio="xMidYMid meet">
+    }} onPointerMove={event=>{const point=toPoint(event);if(!point)return;if(mode==='laser'){setLaser(point);return;}const drawingId=drawing.current;if(drawingId)setNotes(previous=>previous.map(note=>note.id===drawingId?{...note,points:[...note.points,point]}:note));}} onPointerUp={finish} onPointerCancel={finish} onPointerLeave={()=>{if(!drawing.current)setLaser(null);}} viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`} preserveAspectRatio="xMidYMid meet">
       <rect x={frame.x} y={frame.y} width={frame.width} height={frame.height} fill={frame.backgroundColor||'#fff'}/>
       <g pointerEvents="none">{content.map(element=><CanvasElement key={element.id} element={element} elements={elements} selectedElementIds={[]} zoom={1} editingElement={null} croppingState={null} aiRotationState={null} setEditingElement={()=>{}}/>)}</g>
       {notes.filter(note=>note.parentId===frame.id).map(note=><path key={note.id} d={note.points.map((point,i)=>`${i?'L':'M'} ${point.x} ${point.y}`).join(' ')} stroke={note.strokeColor} strokeWidth={note.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"/>)}

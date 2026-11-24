@@ -21,24 +21,26 @@ export function BoardProductivity(props:Props){
   const [notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[compare,setCompare]=useState<CompareImage[]|null>(null);
   const [returnTo,setReturnTo]=useState<{boardId:string;viewport:CanvasViewport}|null>(null);
   const input=useRef<HTMLInputElement>(null),latest=useRef(props);latest.current=props;
-  const active=props.boards.find(board=>board.id===props.activeBoardId);
-  const images=(active?.elements||[]).filter((element):element is ImageElement=>element.type==='image');
-  const run=async(task:()=>Promise<void>)=>{if(busy)return;setBusy(true);setNotice('');try{await task();}catch(error){setNotice(error instanceof Error?error.message:String(error));}finally{setBusy(false);}};
+  const taskRunning=useRef(false),backupRunning=useRef(false),historyRequest=useRef(0);
+  const active=useMemo(()=>props.boards.find(board=>board.id===props.activeBoardId),[props.boards,props.activeBoardId]);
+  const images=useMemo(()=>(active?.elements||[]).filter((element):element is ImageElement=>element.type==='image'),[active?.elements]);
+  const imageById=useMemo(()=>new Map(images.map(image=>[image.id,image])),[images]);
+  const run=async(task:()=>Promise<void>)=>{if(taskRunning.current)return;taskRunning.current=true;setBusy(true);setNotice('');try{await task();}catch(error){setNotice(error instanceof Error?error.message:String(error));}finally{taskRunning.current=false;setBusy(false);}};
   const snapshot=async(board:Board,manual=true)=>json('/api/board/history',{board:await durableAtlasValue(board),manual});
   useEffect(()=>{
-    const backup=async()=>{const current=latest.current;if(current.disabled)return;const board=current.boards.find(item=>item.id===current.activeBoardId);if(!board)return;try{await snapshot(board,false);}catch{setNotice('自动备份失败，请检查本地服务并手动备份');}};
+    const backup=async()=>{const current=latest.current;if(current.disabled||taskRunning.current||backupRunning.current)return;const board=current.boards.find(item=>item.id===current.activeBoardId);if(!board)return;backupRunning.current=true;try{await snapshot(board,false);}catch{setNotice('自动备份失败，请检查本地服务并手动备份');}finally{backupRunning.current=false;}};
     const timer=setInterval(()=>void backup(),5*60*1000);return()=>clearInterval(timer);
   },[]);
-  const loadHistory=async()=>{const value=await json('/api/board/history?board='+encodeURIComponent(props.activeBoardId));setVersions(value.items);};
-  useEffect(()=>{if(open&&tab==='history')void run(loadHistory);},[open,tab,props.activeBoardId]);
+  const loadHistory=async()=>{const boardId=props.activeBoardId,request=++historyRequest.current;const value=await json('/api/board/history?board='+encodeURIComponent(boardId));if(request===historyRequest.current&&latest.current.activeBoardId===boardId)setVersions(value.items);};
+  useEffect(()=>{if(!open||tab!=='history')return;let cancelled=false;setVersions([]);void loadHistory().catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:String(error));});return()=>{cancelled=true;historyRequest.current++;};},[open,tab,props.activeBoardId]);
   const results=useMemo(()=>{
-    const text=query.trim().toLowerCase();if(!text)return [];
+    const text=query.trim().toLowerCase();if(!open||tab!=='find'||!text)return [];
     const found:{board:Board;element:Element}[]=[];
     for(const board of props.boards)for(const element of board.elements){
       const content=[board.name,element.name,'text'in element?element.text:'','groupNote'in element?element.groupNote:'',...(element.tags||[])].join(' ').toLowerCase();
       if(content.includes(text)&&element.isVisible!==false)found.push({board,element});if(found.length>=100)return found;
     }return found;
-  },[props.boards,query]);
+  },[props.boards,query,open,tab]);
   const locate=(board:Board,element:Element)=>{
     setReturnTo({boardId:props.activeBoardId,viewport:props.viewportStore.getLive()});
     if(board.id!==props.activeBoardId)props.setActiveBoardId(board.id);
@@ -49,7 +51,7 @@ export function BoardProductivity(props:Props){
   };
   const toCompare=(source:ImageElement[])=>source.map(image=>({id:image.id,name:image.name||'图片',href:image.originalHref||image.href}));
   const compareSelected=()=>{
-    const selected=props.selectedIds.map(id=>images.find(image=>image.id===id)).filter((image):image is ImageElement=>!!image);
+    const selected=props.selectedIds.map(id=>imageById.get(id)).filter((image):image is ImageElement=>!!image);
     setOpen(false);setExportOpen(false);
     if(selected.length===2){setCompare(toCompare(selected));return;}
     pickingBoard.current=props.activeBoardId;setPicked([]);setPicking(true);
